@@ -1,0 +1,36 @@
+#!/usr/bin/env lua
+local Lexer = require("src.lexer")
+local Parser = require("src.parser")
+local Interpreter = require("src.interpreter")
+
+local function main()
+    if #arg < 2 then
+        print("Usage: lincah jalankan <file.lich>")
+        return
+    end
+
+    local command = arg[1]
+    if command == "jalankan" then
+        local fileName = arg[2]
+        local file = io.open(fileName, "r")
+        if not file then
+            print("File tidak ditemukan:", fileName)
+            return
+        end
+        local source = file:read("*a")
+        file:close()
+
+        local lexer = Lexer.new(source)
+        local tokens = lexer:tokenize()
+
+        local parser = Parser.new(tokens)
+        local ast = parser:parse()
+
+        local interpreter = Interpreter.new()
+        interpreter:run(ast)
+    else
+        print("Perintah tidak dikenal. Contoh: lincah jalankan <file.lich>")
+    end
+end
+
+main()
