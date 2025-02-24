@@ -1,0 +1,55 @@
+fungsi generateAssembly(ast) {
+    asmCode = []
+    tambah(asmCode, "section .text")
+    tambah(asmCode, "global _start")
+    
+    untuk setiap node di ast.anak {
+        jika (node.jenis == "FUNGSI") {
+            label = "_fungsi_" + node.nama
+            tambah(asmCode, label + ":")
+            untuk setiap instruksi di node.body {
+                terjemahkanKeAssembly(instruksi, asmCode)
+            }
+            tambah(asmCode, "ret")
+        } lain jika (node.jenis == "VARIABEL") {
+            tambah(asmCode, "mov [" + node.id + "], " + node.nilai)
+        } lain jika (node.jenis == "JIKA") {
+            labelElse = "_else_" + generateLabel()
+            labelEnd = "_end_" + generateLabel()
+            terjemahkanKeAssembly(node.kondisi, asmCode)
+            tambah(asmCode, "cmp eax, 0")
+            tambah(asmCode, "je " + labelElse)
+            terjemahkanKeAssembly(node.blokJika, asmCode)
+            tambah(asmCode, "jmp " + labelEnd)
+            tambah(asmCode, labelElse + ":")
+            jika (node.blokLain) {
+                terjemahkanKeAssembly(node.blokLain, asmCode)
+            }
+            tambah(asmCode, labelEnd + ":")
+        } lain jika (node.jenis == "SELAMA") {
+            labelStart = "_loop_start_" + generateLabel()
+            labelEnd = "_loop_end_" + generateLabel()
+            tambah(asmCode, labelStart + ":")
+            terjemahkanKeAssembly(node.kondisi, asmCode)
+            tambah(asmCode, "cmp eax, 0")
+            tambah(asmCode, "je " + labelEnd)
+            terjemahkanKeAssembly(node.blok, asmCode)
+            tambah(asmCode, "jmp " + labelStart)
+            tambah(asmCode, labelEnd + ":")
+        }
+    }
+    
+    kembalikan asmCode
+}
+
+fungsi terjemahkanKeAssembly(instruksi, asmCode) {
+    jika (instruksi.jenis == "ADD") {
+        tambah(asmCode, "mov eax, " + instruksi.operand1)
+        tambah(asmCode, "add eax, " + instruksi.operand2)
+        tambah(asmCode, "mov [result], eax")
+    } lain jika (instruksi.jenis == "CMP") {
+        tambah(asmCode, "mov eax, " + instruksi.operand1)
+        tambah(asmCode, "cmp eax, " + instruksi.operand2)
+    }
+    // Tambahkan untuk operasi lain
+}

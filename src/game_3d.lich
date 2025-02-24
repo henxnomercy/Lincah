@@ -1,0 +1,48 @@
+fungsi main() {
+    lebarLayar = 800
+    tinggiLayar = 600
+    inisialisasiLayar3D(lebarLayar, tinggiLayar)
+    
+    warnaLatar = buatWarna(255, 255, 255)
+    warnaPemain = buatWarna(255, 0, 0)
+    warnaMusuh = buatWarna(0, 0, 0)
+    
+    posisiPemain = buatPosisi3D(lebarLayar // 2, tinggiLayar - 50, 0)
+    ukuranPemain = buatUkuran3D(50, 50, 50)
+    kecepatanPemain = 10
+    
+    posisiMusuh = buatPosisi3D(lebarLayar // 2, 0, 0)
+    ukuranMusuh = buatUkuran3D(50, 50, 50)
+    kecepatanMusuh = 10
+    
+    gameOver = salah
+    
+    selama (bukan gameOver) {
+        event = tungguEvent3D()
+        
+        jika (event == "KIRI") {
+            posisiPemain.x -= kecepatanPemain
+            log("Pemain bergerak ke kiri ke " + posisiPemain.x)
+        } lain jika (event == "KANAN") {
+            posisiPemain.x += kecepatanPemain
+            log("Pemain bergerak ke kanan ke " + posisiPemain.x)
+        }
+        
+        posisiMusuh.y += kecepatanMusuh
+        jika (posisiMusuh.y > tinggiLayar) {
+            posisiMusuh.y = 0
+            posisiMusuh.x = acak(0, lebarLayar - ukuranMusuh.lebar)
+            log("Musuh direset ke " + posisiMusuh.x + ", " + posisiMusuh.y)
+        }
+        
+        jarak = hitungJarak3D(posisiPemain, posisiMusuh)
+        log("Jarak antara pemain dan musuh: " + jarak)
+        
+        gambarKubus(posisiPemain, ukuranPemain, warnaPemain)
+        gambarKubus(posisiMusuh, ukuranMusuh, warnaMusuh)
+        
+        perbaruiLayar3D()
+    }
+}
+
+main()

@@ -1,0 +1,114 @@
+struct AstNode {
+    jenis: String,
+    anak: [],
+    nilai: any
+}
+
+fungsi parse(tokens) {
+    pos = 0
+    root = { jenis: "PROGRAM", anak: [] }
+    
+    ulangi (pos < panjang(tokens)) {
+        token = tokens[pos]
+        
+        jika (token.type == "KUNCI") {
+            node = parseKeyword(tokens, pos)
+            tambah(root.anak, node)
+            pos = node.posTerakhir + 1
+        } lain {
+            node = parseEkspresi(tokens, pos)
+            tambah(root.anak, node)
+            pos = node.posTerakhir + 1
+        }
+    }
+    
+    kembalikan root
+}
+
+fungsi parseKeyword(tokens, pos) {
+    token = tokens[pos]
+    jika (token.value == "nilai") {
+        kembalikan parseVariabel(tokens, pos)
+    } lain jika (token.value == "fungsi") {
+        kembalikan parseFungsi(tokens, pos)
+    } lain jika (token.value == "jika") {
+        kembalikan parseJika(tokens, pos)
+    } lain jika (token.value == "selama") {
+        kembalikan parseSelama(tokens, pos)
+    }
+    error("Kata kunci tidak dikenal: " + token.value)
+}
+
+fungsi parseVariabel(tokens, pos) {
+    pos += 1  // Lewati 'nilai'
+    id = tokens[pos].value
+    pos += 1  // Lewati ID
+    pos += 1  // Lewati '='
+    ekspresi = parseEkspresi(tokens, pos)
+    kembalikan { jenis: "VARIABEL", id: id, nilai: ekspresi, posTerakhir: ekspresi.posTerakhir }
+}
+
+fungsi parseFungsi(tokens, pos) {
+    pos += 1  // Lewati 'fungsi'
+    nama = tokens[pos].value
+    pos += 1  // Lewati nama fungsi
+    parameter = []
+    pos += 1  // Lewati '('
+    ulangi (tokens[pos].value != ")") {
+        tambah(parameter, tokens[pos].value)
+        pos += 1
+        jika (tokens[pos].value == ",") pos += 1
+    }
+    pos += 1  // Lewati ')'
+    body = parseBlock(tokens, pos)
+    kembalikan { jenis: "FUNGSI", nama: nama, parameter: parameter, body: body, posTerakhir: body.posTerakhir }
+}
+
+fungsi parseJika(tokens, pos) {
+    pos += 1  // Lewati 'jika'
+    kondisi = parseEkspresi(tokens, pos)
+    pos = kondisi.posTerakhir + 1
+    blokJika = parseBlock(tokens, pos)
+    pos = blokJika.posTerakhir + 1
+    blokLain = null
+    jika (tokens[pos].type == "KUNCI" dan tokens[pos].value == "lain") {
+        pos += 1
+        blokLain = parseBlock(tokens, pos)
+        pos = blokLain.posTerakhir + 1
+    }
+    kembalikan { jenis: "JIKA", kondisi: kondisi, blokJika: blokJika, blokLain: blokLain, posTerakhir: pos - 1 }
+}
+
+fungsi parseSelama(tokens, pos) {
+    pos += 1  // Lewati 'selama'
+    kondisi = parseEkspresi(tokens, pos)
+    pos = kondisi.posTerakhir + 1
+    blok = parseBlock(tokens, pos)
+    kembalikan { jenis: "SELAMA", kondisi: kondisi, blok: blok, posTerakhir: blok.posTerakhir }
+}
+
+fungsi parseEkspresi(tokens, pos) {
+    // Placeholder: Parsing ekspresi sederhana
+    // Untuk ekspresi yang lebih kompleks, gunakan metode seperti Recursive Descent atau Shunting Yard
+    token = tokens[pos]
+    jika (token.type == "ANGKA") {
+        kembalikan { jenis: "LITERAL", nilai: token.value, posTerakhir: pos }
+    } lain jika (token.type == "ID") {
+        kembalikan { jenis: "VARIABEL", id: token.value, posTerakhir: pos }
+    }
+    error("Ekspresi tidak dikenal")
+}
+
+fungsi parseBlock(tokens, pos) {
+    // Placeholder: Parsing block sederhana
+    // Untuk block yang lebih kompleks, tambahkan parsing statement di dalam block
+    pos += 1  // Lewati '{'
+    anak = []
+    ulangi (tokens[pos].value != "}") {
+        node = parse(tokens, pos)
+        tambah(anak, node)
+        pos = node.posTerakhir + 1
+    }
+    pos += 1  // Lewati '}'
+    kembalikan { jenis: "BLOCK", anak: anak, posTerakhir: pos - 1 }
+}

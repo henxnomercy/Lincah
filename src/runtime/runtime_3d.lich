@@ -1,0 +1,48 @@
+jenis Warna = { R: Int, G: Int, B: Int }
+jenis Posisi3D = { x: Int, y: Int, z: Int }
+jenis Ukuran3D = { lebar: Int, tinggi: Int, kedalaman: Int }
+
+fungsi buatWarna(r, g, b) {
+    kembalikan { R: r, G: g, B: b }
+}
+
+fungsi buatPosisi3D(x, y, z) {
+    kembalikan { x: x, y: y, z: z }
+}
+
+fungsi buatUkuran3D(lebar, tinggi, kedalaman) {
+    kembalikan { lebar: lebar, tinggi: tinggi, kedalaman: kedalaman }
+}
+
+fungsi inisialisasiLayar3D(lebar, tinggi) {
+    // Inisialisasi layar dengan ukuran tertentu
+    // Implementasi tergantung pada library grafik yang digunakan
+}
+
+fungsi gambarKubus(posisi, ukuran, warna) {
+    // Gambar kubus pada posisi tertentu dengan ukuran dan warna tertentu
+    // Implementasi tergantung pada library grafik yang digunakan
+}
+
+fungsi perbaruiLayar3D() {
+    // Perbarui layar untuk menampilkan perubahan
+    // Implementasi tergantung pada library grafik yang digunakan
+}
+
+fungsi tungguEvent3D() {
+    // Tunggu event dari pengguna (misalnya, input keyboard atau mouse)
+    // Implementasi tergantung pada library grafik yang digunakan
+    // Kembalikan event yang terjadi
+}
+
+fungsi log(pesan) {
+    // Cetak pesan untuk debugging
+    cetak(pesan)
+}
+
+fungsi hitungJarak3D(pos1, pos2) {
+    dx = pos1.x - pos2.x
+    dy = pos1.y - pos2.y
+    dz = pos1.z - pos2.z
+    kembalikan akar(dx * dx + dy * dy + dz * dz)
+}

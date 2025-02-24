@@ -1,0 +1,48 @@
+jenis Warna = { R: Int, G: Int, B: Int }
+jenis Posisi2_5D = { x: Int, y: Int, z: Int }
+jenis Ukuran2_5D = { lebar: Int, tinggi: Int, kedalaman: Int }
+
+fungsi buatWarna(r, g, b) {
+    kembalikan { R: r, G: g, B: b }
+}
+
+fungsi buatPosisi2_5D(x, y, z) {
+    kembalikan { x: x, y: y, z: z }
+}
+
+fungsi buatUkuran2_5D(lebar, tinggi, kedalaman) {
+    kembalikan { lebar: lebar, tinggi: tinggi, kedalaman: kedalaman }
+}
+
+fungsi inisialisasiLayar2_5D(lebar, tinggi) {
+    // Inisialisasi layar dengan ukuran tertentu
+    // Implementasi tergantung pada library grafik yang digunakan
+}
+
+fungsi gambarObjek2_5D(posisi, ukuran, warna) {
+    // Gambar objek 2.5D pada posisi tertentu dengan ukuran dan warna tertentu
+    // Implementasi tergantung pada library grafik yang digunakan
+}
+
+fungsi perbaruiLayar2_5D() {
+    // Perbarui layar untuk menampilkan perubahan
+    // Implementasi tergantung pada library grafik yang digunakan
+}
+
+fungsi tungguEvent2_5D() {
+    // Tunggu event dari pengguna (misalnya, input keyboard atau mouse)
+    // Implementasi tergantung pada library grafik yang digunakan
+    // Kembalikan event yang terjadi
+}
+
+fungsi log(pesan) {
+    // Cetak pesan untuk debugging
+    cetak(pesan)
+}
+
+fungsi hitungJarak2_5D(pos1, pos2) {
+    dx = pos1.x - pos2.x
+    dy = pos1.y - pos2.y
+    dz = pos1.z - pos2.z
+    kembalikan akar(dx * dx + dy * dy + dz * dz)
+}
