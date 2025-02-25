@@ -1,0 +1,13 @@
+// Script build sederhana untuk mengkompilasi runtime Lincah
+modul build {
+    fungsi main() {
+        println("Mulai kompilasi runtime Lincah...")
+        // Inisialisasi kompilasi dengan AOT dan optimasi compile-time
+        compileDirectory("src/", {
+            optimizations: ["loopUnroll", "deadCodeElimination", "autoVectorization"]
+        })
+        println("Kompilasi selesai. File runtime telah dibuat.")
+    }
+}
+
+build.main()
