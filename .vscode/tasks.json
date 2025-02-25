@@ -4,7 +4,7 @@
     {
       "label": "Build Lincah Language Runtime",
       "type": "shell",
-      "command": "lincah-build",
+      "command": "src/utilities/build",
       "args": [
         "src/utilities/build.lich"
       ],

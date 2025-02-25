@@ -1,6 +1,7 @@
 {
   "version": "0.2.0",
   "configurations": [
+    
     {
       "name": "Debug Lincah Language Program",
       "type": "cppdbg",
@@ -11,7 +12,7 @@
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": false,
-      "preLaunchTask": "Build Lich Runtime",
+      "preLaunchTask": "Build Lincah Language Runtime",
       "MIMode": "gdb",
       "setupCommands": [
         {

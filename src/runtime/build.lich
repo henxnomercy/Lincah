@@ -1,13 +1,47 @@
-// Script build sederhana untuk mengkompilasi runtime Lincah
+// build.lich
 modul build {
-    fungsi main() {
-        println("Mulai kompilasi runtime Lincah...")
-        // Inisialisasi kompilasi dengan AOT dan optimasi compile-time
-        compileDirectory("src/", {
-            optimizations: ["loopUnroll", "deadCodeElimination", "autoVectorization"]
-        })
-        println("Kompilasi selesai. File runtime telah dibuat.")
+    // Fungsi utama build yang mendukung mode debug dan release
+    fungsi main(args: [String]) {
+        // Tentukan mode build, default "release"
+        mode = "release"
+        jika (panjang(args) > 0) {
+            mode = args[0]
+        }
+        
+        println("Mulai kompilasi runtime Lincah dalam mode " + mode + "...")
+        
+        // Konfigurasi build
+        buildConfig = {
+            optimizations: ["loopUnroll", "deadCodeElimination", "autoVectorization"],
+            debugSymbols: (mode == "debug"),
+            target: (mode == "debug") ? "x86_64-debug" : "x86_64",
+            incremental: true  // aktifkan incremental build jika didukung
+        }
+        
+        // Tahap 1: Kompilasi semua modul dalam direktori "src/"
+        hasilKompilasi = compileDirectory("src/", buildConfig)
+        jika (hasilKompilasi.error) {
+            println("Error kompilasi: " + hasilKompilasi.errorMessage)
+            keluar(1)
+        }
+        println("Kompilasi modul selesai. Jumlah modul: " + panjang(hasilKompilasi.modules))
+        
+        // Tahap 2: Link modul–modul yang telah dikompilasi menjadi binary final
+        binaryOutput = linkModules(hasilKompilasi.modules, buildConfig)
+        jika (binaryOutput.error) {
+            println("Error linking: " + binaryOutput.errorMessage)
+            keluar(1)
+        }
+        println("Linking berhasil. Ukuran binary: " + panjang(binaryOutput.data) + " byte")
+        
+        // Tahap 3: Simpan binary ke direktori output (misalnya "bin/")
+        direktoriOutput = "bin/"
+        jika (tidakAdaFolder(direktoriOutput)) {
+            buatFolder(direktoriOutput)
+        }
+        tulisFile(direktoriOutput + "runtime", binaryOutput.data)
+        println("Kompilasi selesai. File runtime telah dibuat di '" + direktoriOutput + "runtime'.")
     }
 }
 
-build.main()
+build.main(argument)
