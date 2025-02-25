@@ -1,0 +1,45 @@
+modul asset_manager {
+    jenis Texture = {
+        id: Int,
+        lebar: Int,
+        tinggi: Int,
+        data: Pointer
+    }
+    
+    jenis AssetPackage = {
+        header: {
+            magic: UInt32,
+            version: UInt16,
+            compressionType: Byte,  // 0: Zstd, 1: LZ4, 2: Brotli
+            checksum: UInt64
+        },
+        entries: Map<String, { offset: UInt64, size: UInt64, uncompressedSize: UInt64 }>
+    }
+    
+    jenis AssetManager = {
+        packages: Map<String, AssetPackage>,
+        cache: LruCache<String, Byte[]>(maxSize: 256MB),
+        loadingQueue: MpscQueue<LoadTask>,
+        workerThreads: [Thread]
+    }
+    
+    global assetManager: AssetManager = {
+        packages: {},
+        cache: new LruCache(maxSize=256MB),
+        loadingQueue: new MpscQueue(),
+        workerThreads: []
+    }
+    
+    fungsi muatAsetAsync(path: String, callback: Fn(Byte[])) {
+        jika (assetManager.cache.ada(path)) {
+            callback(assetManager.cache.dapatkan(path))
+            kembalikan
+        }
+        
+        assetManager.loadingQueue.kirim({
+            path: path,
+            priority: prioritasBerdasarJarakKeKamera(),
+            callback: callback
+        })
+    }
+}
