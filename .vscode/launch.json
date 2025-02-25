@@ -1,12 +1,11 @@
 {
   "version": "0.2.0",
   "configurations": [
-    
     {
       "name": "Debug Lincah Language Program",
-      "type": "cppdbg",
+      "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/output.bin",
+      "program": "${workspaceFolder}/debug-adapter/debug_adapter.lich",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
@@ -14,6 +13,7 @@
       "externalConsole": false,
       "preLaunchTask": "Build Lincah Language Runtime",
       "MIMode": "gdb",
+      "miDebuggerPath": "${workspaceFolder}/bin/gdb",
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",

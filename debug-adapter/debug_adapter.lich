@@ -1,0 +1,305 @@
+modul debug_adapter {
+    // State management
+    var _isDebugging = false
+    var _breakpoints = {}
+    var _threads = new Map()
+    var _variables = new Map()
+    var _stackFrames = []
+    var _currentStep = 'none' // 'in', 'out', 'over'
+    var _currentProcess = null
+    var _seqCounter = 0
+
+    // DAP Constants
+    const STOP_REASON = {
+        ENTRY: 'entry',
+        BREAKPOINT: 'breakpoint',
+        STEP: 'step',
+        EXCEPTION: 'exception'
+    }
+
+    fungsi main() {
+        log("Debug Adapter Lincah dimulai")
+        _initCommunication()
+        _enterEventLoop()
+    }
+
+    //======= Komunikasi =======//
+    fungsi _initCommunication() {
+        // Implementasi transport layer (contoh: TCP/WebSocket)
+        mulaiServerDebug(12345, (request) => {
+            const decodedReq = _decodeDAPMessage(request)
+            _handleRequest(decodedReq)
+        })
+    }
+
+    fungsi _sendResponse(request, body) {
+        const response = {
+            type: "response",
+            seq: _nextSeq(),
+            request_seq: request.seq,
+            success: true,
+            command: request.command,
+            body: body || {}
+        }
+        kirimResponseDebug(_encodeDAPMessage(response))
+    }
+
+    fungsi _sendEvent(eventType, body) {
+        const event = {
+            type: "event",
+            seq: _nextSeq(),
+            event: eventType,
+            body: body || {}
+        }
+        kirimEventDebug(_encodeDAPMessage(event))
+    }
+
+    //======= Request Handling =======//
+    fungsi _handleRequest(request) {
+        log(`Menerima permintaan: ${request.command}`)
+        switch (request.command) {
+            case 'initialize':
+                _handleInitialize(request)
+                break
+            case 'launch':
+                _handleLaunch(request)
+                break
+            case 'disconnect':
+                _handleDisconnect(request)
+                break
+            case 'setBreakpoints':
+                _handleSetBreakpoints(request)
+                break
+            case 'setExceptionBreakpoints':
+                _handleSetExceptionBreakpoints(request)
+                break
+            case 'configurationDone':
+                _handleConfigurationDone(request)
+                break
+            case 'threads':
+                _handleThreadsRequest(request)
+                break
+            case 'stackTrace':
+                _handleStackTrace(request)
+                break
+            case 'scopes':
+                _handleScopes(request)
+                break
+            case 'variables':
+                _handleVariables(request)
+                break
+            case 'continue':
+                _handleContinue(request)
+                break
+            case 'next':
+                _handleStep('over', request)
+                break
+            case 'stepIn':
+                _handleStep('in', request)
+                break
+            case 'stepOut':
+                _handleStep('out', request)
+                break
+            default:
+                _sendErrorResponse(request, `Command tidak didukung: ${request.command}`)
+        }
+    }
+
+    //======= Implementasi Fitur Debug =======//
+    fungsi _handleInitialize(request) {
+        const capabilities = {
+            supportsConfigurationDoneRequest: true,
+            supportsFunctionBreakpoints: true,
+            supportsConditionalBreakpoints: true,
+            supportsHitConditionalBreakpoints: true,
+            supportsEvaluateForHovers: true,
+            supportsStepBack: false,
+            supportsSetVariable: true,
+            supportsRestartFrame: false,
+            supportsGotoTargetsRequest: false,
+            supportsStepInTargetsRequest: true,
+            supportsCompletionsRequest: true,
+            supportsModulesRequest: false,
+            exceptionBreakpointFilters: [
+                { filter: 'all', label: 'Semua Exception' },
+                { filter: 'unhandled', label: 'Exception Tidak Tertangkap' }
+            ]
+        }
+        _sendResponse(request, { capabilities })
+        _sendEvent('initialized')
+    }
+
+    fungsi _handleLaunch(request) {
+        try {
+            _currentProcess = spawnLincahProcess(request.arguments.program, 
+                request.arguments.args)
+            
+            _setupRuntimeHooks(_currentProcess)
+            _sendResponse(request, {})
+            _sendEvent('process', { name: request.arguments.program })
+            _sendEvent('stopped', {
+                reason: STOP_REASON.ENTRY,
+                threadId: 1,
+                allThreadsStopped: true
+            })
+        } catch (error) {
+            _sendErrorResponse(request, `Gagal meluncurkan program: ${error.message}`)
+        }
+    }
+
+    fungsi _handleSetBreakpoints(request) {
+        const breakpoints = []
+        const sourcePath = request.arguments.source.path
+        
+        for (const srcBp of request.arguments.breakpoints) {
+            const bp = {
+                id: _generateBreakpointId(),
+                verified: true,
+                line: srcBp.line,
+                column: srcBp.column,
+                condition: srcBp.condition
+            }
+            _breakpoints[sourcePath] = _breakpoints[sourcePath] || []
+            _breakpoints[sourcePath].push(bp)
+            breakpoints.push(bp)
+        }
+        
+        _sendResponse(request, { breakpoints })
+    }
+
+    fungsi _handleStep(stepType, request) {
+        _currentStep = stepType
+        _continueExecution(stepType)
+        _sendResponse(request, {})
+    }
+
+    fungsi _handleContinue(request) {
+        _continueExecution('continue')
+        _sendResponse(request, {})
+    }
+
+    //======= Runtime Integration =======//
+    fungsi _setupRuntimeHooks(process) {
+        process.on('breakpointHit', (data) => {
+            _updateStackFrames(data.stack)
+            _sendEvent('stopped', {
+                reason: STOP_REASON.BREAKPOINT,
+                threadId: 1,
+                description: `Breakpoint di ${data.file}:${data.line}`
+            })
+        })
+        
+        process.on('stepComplete', (data) => {
+            _updateStackFrames(data.stack)
+            _sendEvent('stopped', {
+                reason: STOP_REASON.STEP,
+                threadId: 1,
+                description: `Step selesai di ${data.file}:${data.line}`
+            })
+        })
+        
+        process.on('exception', (error) => {
+            _sendEvent('stopped', {
+                reason: STOP_REASON.EXCEPTION,
+                text: error.message,
+                threadId: 1
+            })
+        })
+    }
+
+    fungsi _updateStackFrames(stack) {
+        _stackFrames = stack.map((frame, idx) => ({
+            id: idx,
+            name: frame.functionName,
+            line: frame.line,
+            column: frame.column,
+            source: { path: frame.file }
+        }))
+    }
+
+    //======= State Management =======//
+    fungsi _continueExecution(stepType) {
+        switch (stepType) {
+            case 'over':
+                continueProcess({ stepType: 'over' })
+                break
+            case 'in':
+                continueProcess({ stepType: 'into' })
+                break
+            case 'out':
+                continueProcess({ stepType: 'out' })
+                break
+            default:
+                continueProcess()
+        }
+    }
+
+    fungsi _generateBreakpointId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2)
+    }
+
+    //======= Utilities =======//
+    fungsi _nextSeq() {
+        return ++_seqCounter
+    }
+
+    fungsi _sendErrorResponse(request, message) {
+        const response = {
+            type: "response",
+            seq: _nextSeq(),
+            request_seq: request.seq,
+            success: false,
+            command: request.command,
+            message: message
+        }
+        kirimResponseDebug(_encodeDAPMessage(response))
+    }
+
+    fungsi _encodeDAPMessage(message) {
+        return JSON.stringify(message) + '\r\n'
+    }
+
+    fungsi _decodeDAPMessage(data) {
+        return JSON.parse(data)
+    }
+}
+
+// Implementasi fungsi-fungsi sistem
+implementasi {
+    fungsi mulaiServerDebug(port, callback) {
+        log(`Server debug dimulai pada port ${port}`)
+        // Implementasi server debug
+    }
+
+    fungsi kirimResponseDebug(message) {
+        log(`Mengirim response: ${message}`)
+        // Implementasi pengiriman response
+    }
+
+    fungsi kirimEventDebug(message) {
+        log(`Mengirim event: ${message}`)
+        // Implementasi pengiriman event
+    }
+
+    fungsi spawnLincahProcess(program, args) {
+        log(`Meluncurkan proses: ${program} dengan argumen ${args}`)
+        // Integrasi dengan runtime Lincah
+        return {
+            pid: Math.floor(Math.random() * 10000),
+            on: fungsi(event, callback) { /* ... */ },
+            sendCommand: fungsi(command) { /* ... */ }
+        }
+    }
+    
+    fungsi continueProcess(options) {
+        log(`Melanjutkan proses dengan opsi: ${JSON.stringify(options)}`)
+        // Mengirim perintah ke runtime
+    }
+    
+    fungsi terminateProcess() {
+        log(`Menghentikan proses`)
+        // Menghentikan proses
+    }
+}
+
+debug_adapter.main()
