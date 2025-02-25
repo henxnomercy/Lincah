@@ -1,0 +1,38 @@
+modul vulkan_context {
+    jenis VulkanContext = {
+        instance: VkInstance,
+        device: VkDevice,
+        physicalDevice: VkPhysicalDevice,
+        swapchain: VkSwapchainKHR,
+        commandPool: VkCommandPool,
+        descriptorPool: VkDescriptorPool,
+        pipelineCache: VkPipelineCache,
+        allocator: VmaAllocator
+    }
+    
+    fungsi initVulkan() -> VulkanContext {
+        context = {
+            instance: vkCreateInstance(minimalInstanceCreateInfo()),
+            physicalDevice: pilihDeviceDenganEkstensi(["VK_KHR_swapchain"]),
+            device: buatLogicalDeviceDenganEkstensiMinimal(),
+            swapchain: buatSwapchainResolusiDinamis(),
+            commandPool: buatCommandPool(),
+            descriptorPool: buatDescriptorPool(),
+            pipelineCache: buatPipelineCache(),
+            allocator: vmaCreateAllocator(pengaturanMemoriOptimal())
+        }
+        vmaCreatePool(context.allocator, "GPU_ONLY", VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+        vmaCreatePool(context.allocator, "CPU_TO_GPU", VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+        
+        kembalikan context
+    }
+    
+    fungsi minimalInstanceCreateInfo() { /* ... */ }
+    fungsi pilihDeviceDenganEkstensi(exts: [String]) { /* ... */ }
+    fungsi buatLogicalDeviceDenganEkstensiMinimal() { /* ... */ }
+    fungsi buatSwapchainResolusiDinamis() { /* ... */ }
+    fungsi buatCommandPool() { /* ... */ }
+    fungsi buatDescriptorPool() { /* ... */ }
+    fungsi buatPipelineCache() { /* ... */ }
+    fungsi pengaturanMemoriOptimal() { /* ... */ }
+}
