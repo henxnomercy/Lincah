@@ -3,6 +3,10 @@ jenis TokenType = TEKS, ANGKA, ID, KUNCI, OPERATOR
 kataKunci = ["nilai", "fungsi", "jika", "lain", "ulangi", "selama", "kembalikan"]
 operatorDuaKarakter = ["==", "!=", "<=", ">="]
 
+fungsi isWhitespace(ch) {
+    kembalikan (ch == " " atau ch == "\n" atau ch == "\t")
+}
+
 fungsi tokenize(src) {
     pos = 1
     tokens = []
@@ -11,29 +15,30 @@ fungsi tokenize(src) {
     ulangi (pos <= panjangSrc) {
         ch = charAt(src, pos)
         
-        // Skip whitespace
-        jika (ch == " " atau ch == "\n" atau ch == "\t") {
+        // Lewati whitespace
+        jika (isWhitespace(ch)) {
             pos += 1
             lanjutkan
         }
         
-        // Token string
+        // Token string: diapit oleh tanda kutip ganda
         jika (ch == "\"") {
             str = ""
             pos += 1  // Lewati tanda kutip pembuka
-            ulangi (pos <= panjangSrc dan charAt(src, pos) != "\"") {
+            selama (pos <= panjangSrc dan charAt(src, pos) != "\"") {
                 str += charAt(src, pos)
                 pos += 1
             }
+            jika (pos > panjangSrc) error("String tidak tertutup")
             pos += 1  // Lewati tanda kutip penutup
             tambah(tokens, { type: "TEKS", value: str })
             lanjutkan
         }
         
-        // Token angka (integer dan desimal)
+        // Token angka: mendukung integer dan desimal
         jika (adalahAngka(ch)) {
             num = ""
-            ulangi (pos <= panjangSrc dan (adalahAngka(charAt(src, pos)) atau charAt(src, pos) == ".")) {
+            selama (pos <= panjangSrc dan (adalahAngka(charAt(src, pos)) atau charAt(src, pos) == ".")) {
                 num += charAt(src, pos)
                 pos += 1
             }
@@ -44,12 +49,12 @@ fungsi tokenize(src) {
         // Identifier atau keyword
         jika (adalahHuruf(ch)) {
             id = ""
-            ulangi (pos <= panjangSrc dan (adalahHuruf(charAt(src, pos)) atau adalahAngka(charAt(src, pos)))) {
+            selama (pos <= panjangSrc dan (adalahHuruf(charAt(src, pos)) atau adalahAngka(charAt(src, pos)))) {
                 id += charAt(src, pos)
                 pos += 1
             }
-            type = (id di kataKunci) ? "KUNCI" : "ID"
-            tambah(tokens, { type: type, value: id })
+            tipe = (id di kataKunci) ? "KUNCI" : "ID"
+            tambah(tokens, { type: tipe, value: id })
             lanjutkan
         }
         
@@ -57,18 +62,21 @@ fungsi tokenize(src) {
         jika (adalahOperator(ch)) {
             op = charAt(src, pos)
             pos += 1
-            // Cek operator dua karakter
-            jika (pos <= panjangSrc dan (op + charAt(src, pos) di operatorDuaKarakter)) {
-                op += charAt(src, pos)
-                pos += 1
+            // Cek kemungkinan operator dua karakter
+            jika (pos <= panjangSrc) {
+                duaChar = op + charAt(src, pos)
+                jika (duaChar di operatorDuaKarakter) {
+                    op = duaChar
+                    pos += 1
+                }
             }
             tambah(tokens, { type: "OPERATOR", value: op })
             lanjutkan
         }
         
-        // Komentar
+        // Komentar: mulai dengan '#' hingga akhir baris
         jika (ch == "#") {
-            ulangi (pos <= panjangSrc dan charAt(src, pos) != "\n") {
+            selama (pos <= panjangSrc dan charAt(src, pos) != "\n") {
                 pos += 1
             }
             lanjutkan
