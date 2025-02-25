@@ -1,29 +1,18 @@
-# Direktori build dan output
 /build/
 /bin/
 output.bin
 output.asm
 shader.spv
-
-# File binary dan cache
 *.o
 *.so
 *.dll
 *.exe
 *.cache
 shader_cache.bin
-
-# File sementara dan log
 *.tmp
 *.log
-
-# File konfigurasi IDE/editor
 .vscode/
 .idea/
-
-# File sistem operasi
 .DS_Store
 Thumbs.db
-
-# File backup
 *~
