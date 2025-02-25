@@ -1,47 +1,106 @@
+// Game 3D kompleks dengan dukungan debug, level, skor, pause/resume, dan multiple enemy.
+// Kompatibel untuk pengembangan di VSCode, Android, dan mendukung mode debug.
+
 fungsi main() {
     lebarLayar = 800
     tinggiLayar = 600
-    inisialisasiLayar3D(lebarLayar, tinggiLayar)
+    debugMode = true
+    layar = inisialisasiLayar3D(lebarLayar, tinggiLayar)
+    setBackgroundColor(layar, buatWarna(255, 255, 255))
     
-    warnaLatar = buatWarna(255, 255, 255)
     warnaPemain = buatWarna(255, 0, 0)
-    warnaMusuh = buatWarna(0, 0, 0)
-    
     posisiPemain = buatPosisi3D(lebarLayar // 2, tinggiLayar - 50, 0)
     ukuranPemain = buatUkuran3D(50, 50, 50)
     kecepatanPemain = 10
     
-    posisiMusuh = buatPosisi3D(lebarLayar // 2, 0, 0)
-    ukuranMusuh = buatUkuran3D(50, 50, 50)
-    kecepatanMusuh = 10
+    jumlahMusuh = 3
+    musuhList = []
+    untuk (i = 1; i <= jumlahMusuh; i++) {
+        warnaMusuh = buatWarna(0, 0, 0)
+        posisiMusuh = buatPosisi3D(acak(0, lebarLayar - 50), acak(0, tinggiLayar // 2), 0)
+        ukuranMusuh = buatUkuran3D(50, 50, 50)
+        kecepatanMusuh = 5 + acak(0, 5)  // Kecepatan musuh acak antara 5 hingga 10
+        tambahkan(musuhList, { warna: warnaMusuh, posisi: posisiMusuh, ukuran: ukuranMusuh, kecepatan: kecepatanMusuh })
+    }
     
-    gameOver = salah
+    skor = 0
+    level = 1
+    waktuMulai = dapatkanWaktu()
     
-    selama (bukan gameOver) {
+    gameOver = false
+    pause = false
+    
+    selagi (bukan gameOver) {
         event = tungguEvent3D()
         
         jika (event == "KIRI") {
             posisiPemain.x -= kecepatanPemain
-            log("Pemain bergerak ke kiri ke " + posisiPemain.x)
+            jika (debugMode) { log("Pemain bergerak ke kiri ke " + posisiPemain.x) }
         } lain jika (event == "KANAN") {
             posisiPemain.x += kecepatanPemain
-            log("Pemain bergerak ke kanan ke " + posisiPemain.x)
+            jika (debugMode) { log("Pemain bergerak ke kanan ke " + posisiPemain.x) }
+        } lain jika (event == "PAUSE") {
+            pause = true
+            log("Game dijeda.")
+        } lain jika (event == "RESUME") {
+            pause = false
+            log("Game dilanjutkan.")
+        } lain jika (event == "EXIT") {
+            gameOver = true
+            break
         }
         
-        posisiMusuh.y += kecepatanMusuh
-        jika (posisiMusuh.y > tinggiLayar) {
-            posisiMusuh.y = 0
-            posisiMusuh.x = acak(0, lebarLayar - ukuranMusuh.lebar)
-            log("Musuh direset ke " + posisiMusuh.x + ", " + posisiMusuh.y)
+        jika (pause) {
+            tunggu(100)  // jeda pendek ketika game dalam mode pause
+            lanjutkan
         }
         
-        jarak = hitungJarak3D(posisiPemain, posisiMusuh)
-        log("Jarak antara pemain dan musuh: " + jarak)
+        untuk setiap (musuh dalam musuhList) {
+            musuh.posisi.y += musuh.kecepatan
+            jika (musuh.posisi.y > tinggiLayar) {
+                musuh.posisi.y = 0
+                musuh.posisi.x = acak(0, lebarLayar - musuh.ukuran.lebar)
+                jika (debugMode) { log("Musuh direset ke (" + musuh.posisi.x + ", " + musuh.posisi.y + ")") }
+                skor += 10  // Tambah skor saat musuh reset (misal, sebagai reward)
+            }
+        }
         
+        untuk setiap (musuh dalam musuhList) {
+            jarak = hitungJarak3D(posisiPemain, musuh.posisi)
+            jika (jarak < (ukuranPemain.lebar / 2 + musuh.ukuran.lebar / 2)) {
+                log("Tabrakan terdeteksi! Jarak: " + jarak)
+                gameOver = true
+            }
+        }
+        
+        waktuSekarang = dapatkanWaktu()
+        jika (waktuSekarang - waktuMulai > 10000) {
+            level += 1
+            kecepatanPemain += 2
+            untuk setiap (musuh dalam musuhList) {
+                musuh.kecepatan += 1
+            }
+            waktuMulai = waktuSekarang
+            log("Level naik ke " + level)
+        }
+        
+        clearLayar3D(layar)
+        untuk setiap (musuh dalam musuhList) {
+            gambarKubus(musuh.posisi, musuh.ukuran, musuh.warna)
+        }
         gambarKubus(posisiPemain, ukuranPemain, warnaPemain)
-        gambarKubus(posisiMusuh, ukuranMusuh, warnaMusuh)
-        
-        perbaruiLayar3D()
+        tampilkanTeks(layar, "Skor: " + skor + "  Level: " + level, 10, 10, buatWarna(0, 0, 0))
+        perbaruiLayar3D(layar)
+        jika (debugMode) {
+            frameTime = hitungFrameTime()
+            log("Frame time: " + frameTime + " ms")
+        }
+    }
+    
+    jika (gameOver) {
+        tampilkanTeks(layar, "GAME OVER - Skor Akhir: " + skor, lebarLayar // 2 - 100, tinggiLayar // 2, buatWarna(255, 0, 0))
+        perbaruiLayar3D(layar)
+        tunggu(3000) 
     }
 }
 
