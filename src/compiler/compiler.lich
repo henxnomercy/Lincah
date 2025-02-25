@@ -1,0 +1,56 @@
+modul compiler {
+    impor lexer        from "lexer.lich"
+    impor parser       from "parser.lich"
+    impor codegen      from "codegen.lich"
+    impor aot_compiler from "aot_compiler.lich"
+    impor jit_compiler from "jit_compiler.lich"
+    impor shader_compiler from "shader_compiler.lich"
+
+    fungsi compileSource(source: String, mode: String, target: String) -> Any {
+        tokens = lexer.tokenize(source)
+        ast = parser.parse(tokens)
+          
+        asmCode = codegen.generateAssembly(ast)
+        
+        jika (mode == "aot") {
+            binary = aot_compiler.compile(source, target)
+            kembalikan { binary: binary, asm: asmCode }
+        } lain jika (mode == "jit") {
+            // Kompilasi Just-In-Time untuk menghasilkan fungsi callable secara dinamis
+            jitFunc = jit_compiler.compileJIT(source)
+            kembalikan { jitFunction: jitFunc, asm: asmCode }
+        } lain jika (mode == "shader") {
+            // Kompilasi shader code ke SPIR-V (target: "vertex", "fragment", dll.)
+            spirvBinary = shader_compiler.compileShader(source, target)
+            kembalikan { spirv: spirvBinary }
+        } lain {
+            error("Mode kompilasi tidak valid: " + mode)
+        }
+    }
+    fungsi main() {
+        // Baca source code dari file (misalnya, "contoh.lincah")
+        sourceCode = bacaFile("contoh.lincah")
+        
+        // Pilih mode kompilasi: ganti "aot" dengan "jit" atau "shader" sesuai kebutuhan
+        hasil = compileSource(sourceCode, "aot", "x86_64")
+        
+        jika (hasil.binary != null) {
+            tulisFile("output.bin", hasil.binary)
+            cetak("Kompilasi AOT berhasil! Binary disimpan sebagai output.bin")
+        }
+        jika (hasil.asm != null) {
+            tulisFile("output.asm", gabungBaris(hasil.asm))
+            cetak("Assembly code berhasil dihasilkan dan disimpan sebagai output.asm")
+        }
+  
+        hasilJIT = compileSource(sourceCode, "jit", "")
+
+        shaderSource = bacaFile("shader.vert")
+        hasilShader = compileSource(shaderSource, "shader", "vertex")
+        tulisFile("shader.spv", hasilShader.spirv)
+        
+    }
+}
+
+// Panggil fungsi main compiler
+compiler.main()
