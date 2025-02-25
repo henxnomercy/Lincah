@@ -1,0 +1,19 @@
+modul job_system {
+    jenis JobSystem = {
+        threadPool: WorkerPool(threadCount: coreCount - 1),
+        taskGraph: DependencyGraph<TaskNode>
+    }
+    
+    global jobSystem: JobSystem = {
+        threadPool: new WorkerPool(threadCount=coreCount - 1),
+        taskGraph: new DependencyGraph()
+    }
+    
+    fungsi paralelProcess(resources: [Resource], processFn: Fn(Resource)) {
+        jobSystem.taskGraph.buat(
+            nodes: resources.map(res => TaskNode(res)),
+            dependencies: deteksiKetergantungan(resources)
+        )
+        jobSystem.threadPool.jalankan(jobSystem.taskGraph, processFn)
+    }
+}
