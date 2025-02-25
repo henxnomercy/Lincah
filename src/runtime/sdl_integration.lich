@@ -1,0 +1,25 @@
+modul sdl_integration {
+    jenis SDLContext = {
+        window: Pointer,
+        renderer: Pointer
+    }
+    
+    fungsi inisialisasiSDL23D(lebar: Int, tinggi: Int) -> SDLContext {
+        context = {
+            window: SDL_CreateWindow("Lincah 3D", 100, 100, lebar, tinggi, SDL_WINDOW_VULKAN),
+            renderer: null  // Renderer dapat disesuaikan bila diperlukan
+        }
+        // Konfigurasi event input, dsb.
+        kembalikan context
+    }
+    
+    fungsi prosesInput() {
+        // Proses event SDL
+        untuk setiap event dalam SDL_PollEvents() {
+            jika (event.type == SDL_QUIT) {
+                exit(0)
+            }
+            // Proses keyboard, mouse, dll.
+        }
+    }
+}
