@@ -1,15 +1,17 @@
-// File utama compiler yang mengintegrasikan modul lexer, parser, codegen,
+// Mengintegrasikan modul lexer, parser, codegen,
 // serta modul aot_compiler, jit_compiler, dan shader_compiler.
+// Juga mengintegrasikan debug adapter jika flag --debug disertakan.
 
 modul compiler {
     // Impor modul–modul compiler
-    impor lexer        dari "../compiler/lexer.lich"
-    impor parser       dari "../compiler/parser.lich"
-    impor codegen      dari "../compiler/codegen.lich"
-    impor aot_compiler dari "../compiler/aot_compiler.lich"
-    impor jit_compiler dari "../compiler/jit_compiler.lich"
+    impor lexer          dari "../compiler/lexer.lich"
+    impor parser         dari "../compiler/parser.lich"
+    impor codegen        dari "../compiler/codegen.lich"
+    impor aot_compiler   dari "../compiler/aot_compiler.lich"
+    impor jit_compiler   dari "../compiler/jit_compiler.lich"
     impor shader_compiler dari "../compiler/shader_compiler.lich"
 
+    // Fungsi untuk mengkompilasi source code berdasarkan mode (aot, jit, shader)
     fungsi compileSource(source: String, mode: String, target: String) -> Any {
         tokens = lexer.tokenize(source)
         ast = parser.parse(tokens)
@@ -30,26 +32,43 @@ modul compiler {
         }
     }
 
-    fungsi main() {
+    // Fungsi main menerima argumen command-line (misalnya, ["--debug"])
+    fungsi main(args: [String]) {
+        // Jika flag --debug disertakan, jalankan debug adapter
+        jika (args.menyertakan("--debug")) {
+            impor adapter_debug dari "../../debug-adapter/debug_adapter.lich"
+            adapter_debug.utama()
+            // Debug adapter akan menangani komunikasi debug
+        }
+        
+        catat_log("Memulai proses kompilasi bahasa Lincah...")
         sourceCode = bacaFile("contoh.lich")
         
-        hasil = compileSource(sourceCode, "aot", "x86_64")
-        
-        jika (hasil.binary != null) {
-            tulisFile("output.bin", hasil.binary)
+        // Kompilasi AOT
+        hasilAOT = compileSource(sourceCode, "aot", "x86_64")
+        jika (hasilAOT.binary != null) {
+            tulisFile("output.bin", hasilAOT.binary)
             cetak("Kompilasi AOT berhasil! Binary disimpan sebagai output.bin")
         }
-        jika (hasil.asm != null) {
-            tulisFile("output.asm", gabungBaris(hasil.asm))
+        jika (hasilAOT.asm != null) {
+            tulisFile("output.asm", gabungBaris(hasilAOT.asm))
             cetak("Assembly code berhasil dihasilkan dan disimpan sebagai output.asm")
         }
-
-        //Extension
-        hasilJIT = compileSource(sourceCode, "jit", "")        
+        
+        // Kompilasi JIT (contoh, hanya untuk demonstrasi)
+        hasilJIT = compileSource(sourceCode, "jit", "")
+        jika (hasilJIT.jitFunction != null) {
+            cetak("Fungsi JIT berhasil dikompilasi")
+        }
+        
+        // Kompilasi Shader
         shaderSource = bacaFile("shader.vert")
         hasilShader = compileSource(shaderSource, "shader", "vertex")
-        tulisFile("shader.spv", hasilShader.spirv)
+        jika (hasilShader.spirv != null) {
+            tulisFile("shader.spv", hasilShader.spirv)
+            cetak("Shader SPIR-V berhasil dihasilkan dan disimpan sebagai shader.spv")
+        }
     }
 }
 
-compiler.main()
+compiler.main(argument)
