@@ -1,14 +1,15 @@
 struct AstNode {
     jenis: String,
     anak: [],
-    nilai: any
+    nilai: any,
+    posTerakhir: Int
 }
 
 fungsi parse(tokens) {
     pos = 0
-    root = { jenis: "PROGRAM", anak: [] }
+    root = { jenis: "PROGRAM", anak: [], posTerakhir: 0 }
     
-    ulangi (pos < panjang(tokens)) {
+    selagi (pos < panjang(tokens)) {
         token = tokens[pos]
         
         jika (token.type == "KUNCI") {
@@ -22,6 +23,7 @@ fungsi parse(tokens) {
         }
     }
     
+    root.posTerakhir = pos - 1
     kembalikan root
 }
 
@@ -40,21 +42,27 @@ fungsi parseKeyword(tokens, pos) {
 }
 
 fungsi parseVariabel(tokens, pos) {
+    // Format: 'nilai' <ID> '=' <ekspresi>
     pos += 1  // Lewati 'nilai'
+    jika (pos >= panjang(tokens)) error("Ekspektasi identifier setelah 'nilai'")
     id = tokens[pos].value
     pos += 1  // Lewati ID
+    jika (tokens[pos].value != "=") error("Ekspektasi '=' setelah identifier " + id)
     pos += 1  // Lewati '='
     ekspresi = parseEkspresi(tokens, pos)
     kembalikan { jenis: "VARIABEL", id: id, nilai: ekspresi, posTerakhir: ekspresi.posTerakhir }
 }
 
 fungsi parseFungsi(tokens, pos) {
+    // Format: 'fungsi' <nama> '(' <parameter_list> ')' <block>
     pos += 1  // Lewati 'fungsi'
+    jika (pos >= panjang(tokens)) error("Ekspektasi nama fungsi setelah 'fungsi'")
     nama = tokens[pos].value
     pos += 1  // Lewati nama fungsi
     parameter = []
+    jika (tokens[pos].value != "(") error("Ekspektasi '(' setelah nama fungsi " + nama)
     pos += 1  // Lewati '('
-    ulangi (tokens[pos].value != ")") {
+    selagi (tokens[pos].value != ")") {
         tambah(parameter, tokens[pos].value)
         pos += 1
         jika (tokens[pos].value == ",") pos += 1
@@ -65,13 +73,14 @@ fungsi parseFungsi(tokens, pos) {
 }
 
 fungsi parseJika(tokens, pos) {
+    // Format: 'jika' <kondisi> <block> ( 'lain' <block> )?
     pos += 1  // Lewati 'jika'
     kondisi = parseEkspresi(tokens, pos)
     pos = kondisi.posTerakhir + 1
     blokJika = parseBlock(tokens, pos)
     pos = blokJika.posTerakhir + 1
     blokLain = null
-    jika (tokens[pos].type == "KUNCI" dan tokens[pos].value == "lain") {
+    jika (pos < panjang(tokens) dan tokens[pos].type == "KUNCI" dan tokens[pos].value == "lain") {
         pos += 1
         blokLain = parseBlock(tokens, pos)
         pos = blokLain.posTerakhir + 1
@@ -80,6 +89,7 @@ fungsi parseJika(tokens, pos) {
 }
 
 fungsi parseSelama(tokens, pos) {
+    // Format: 'selama' <kondisi> <block>
     pos += 1  // Lewati 'selama'
     kondisi = parseEkspresi(tokens, pos)
     pos = kondisi.posTerakhir + 1
@@ -88,27 +98,28 @@ fungsi parseSelama(tokens, pos) {
 }
 
 fungsi parseEkspresi(tokens, pos) {
-    // Placeholder: Parsing ekspresi sederhana
-    // Untuk ekspresi yang lebih kompleks, gunakan metode seperti Recursive Descent atau Shunting Yard
+    // Placeholder: Parsing ekspresi sederhana.
+    // Untuk ekspresi kompleks, gunakan teknik Recursive Descent atau algoritma Shunting Yard.
     token = tokens[pos]
     jika (token.type == "ANGKA") {
         kembalikan { jenis: "LITERAL", nilai: token.value, posTerakhir: pos }
     } lain jika (token.type == "ID") {
         kembalikan { jenis: "VARIABEL", id: token.value, posTerakhir: pos }
     }
-    error("Ekspresi tidak dikenal")
+    error("Ekspresi tidak dikenal pada token: " + token.value)
 }
 
 fungsi parseBlock(tokens, pos) {
-    // Placeholder: Parsing block sederhana
-    // Untuk block yang lebih kompleks, tambahkan parsing statement di dalam block
+    // Block diawali dengan '{' dan diakhiri dengan '}'
+    jika (tokens[pos].value != "{") error("Ekspektasi '{' untuk memulai block")
     pos += 1  // Lewati '{'
     anak = []
-    ulangi (tokens[pos].value != "}") {
+    selagi (pos < panjang(tokens) dan tokens[pos].value != "}") {
         node = parse(tokens, pos)
         tambah(anak, node)
         pos = node.posTerakhir + 1
     }
+    jika (pos >= panjang(tokens) atau tokens[pos].value != "}") error("Ekspektasi '}' untuk mengakhiri block")
     pos += 1  // Lewati '}'
     kembalikan { jenis: "BLOCK", anak: anak, posTerakhir: pos - 1 }
 }
