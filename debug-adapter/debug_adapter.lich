@@ -1,305 +1,236 @@
-modul debug_adapter {
-    // State management
-    var _isDebugging = false
-    var _breakpoints = {}
-    var _threads = new Map()
-    var _variables = new Map()
-    var _stackFrames = []
-    var _currentStep = 'none' // 'in', 'out', 'over'
-    var _currentProcess = null
-    var _seqCounter = 0
+modul adapter_debug {
+    // Variabel status
+    variabel _sedang_debug = palsu
+    variabel _titik_henti = {}
+    variabel _utas = petaBaru()
+    variabel _variabel = petaBaru()
+    variabel _bingkai_tumpukan = []
+    variabel _langkah_sekarang = "tidak_ada" // 'masuk', 'keluar', 'lewati'
+    variabel _proses_sekarang = nol
 
-    // DAP Constants
-    const STOP_REASON = {
-        ENTRY: 'entry',
-        BREAKPOINT: 'breakpoint',
-        STEP: 'step',
-        EXCEPTION: 'exception'
+    // Konstanta DAP
+    konst ALASAN_BERHENTI = {
+        MASUK: "masuk",
+        TITIK_HENTI: "titik_henti",
+        LANGKAH: "langkah",
+        GALAT: "galat"
     }
 
-    fungsi main() {
-        log("Debug Adapter Lincah dimulai")
-        _initCommunication()
-        _enterEventLoop()
+    fungsi utama() {
+        catat_log("Adapter Debug Lincah dimulai")
+        _inisialisasi_komunikasi()
+        _masuk_loop_peristiwa()
     }
 
     //======= Komunikasi =======//
-    fungsi _initCommunication() {
-        // Implementasi transport layer (contoh: TCP/WebSocket)
-        mulaiServerDebug(12345, (request) => {
-            const decodedReq = _decodeDAPMessage(request)
-            _handleRequest(decodedReq)
+    fungsi _inisialisasi_komunikasi() {
+        // Implementasi lapisan transport (misalnya, socket atau STDIN/STDOUT)
+        mulai_server_debug(port: 4711, (permintaan) => {
+            permintaan_terdekode = _dekode_pesan_dap(permintaan)
+            _atur_permintaan(permintaan_terdekode)
         })
     }
 
-    fungsi _sendResponse(request, body) {
-        const response = {
-            type: "response",
-            seq: _nextSeq(),
-            request_seq: request.seq,
-            success: true,
-            command: request.command,
-            body: body || {}
+    fungsi _kirim_tanggapan(permintaan, isi) {
+        tanggapan = {
+            jenis: "tanggapan",
+            urutan: _urutan_berikutnya(),
+            urutan_permintaan: permintaan.urutan,
+            sukses: benar,
+            perintah: permintaan.perintah,
+            isi: isi || {}
         }
-        kirimResponseDebug(_encodeDAPMessage(response))
+        kirim_tanggapan_debug(_kodekan_pesan_dap(tanggapan))
     }
 
-    fungsi _sendEvent(eventType, body) {
-        const event = {
-            type: "event",
-            seq: _nextSeq(),
-            event: eventType,
-            body: body || {}
+    fungsi _kirim_peristiwa(jenis_peristiwa, isi) {
+        peristiwa = {
+            jenis: "peristiwa",
+            urutan: _urutan_berikutnya(),
+            peristiwa: jenis_peristiwa,
+            isi: isi || {}
         }
-        kirimEventDebug(_encodeDAPMessage(event))
+        kirim_peristiwa_debug(_kodekan_pesan_dap(peristiwa))
     }
 
-    //======= Request Handling =======//
-    fungsi _handleRequest(request) {
-        log(`Menerima permintaan: ${request.command}`)
-        switch (request.command) {
-            case 'initialize':
-                _handleInitialize(request)
-                break
-            case 'launch':
-                _handleLaunch(request)
-                break
-            case 'disconnect':
-                _handleDisconnect(request)
-                break
-            case 'setBreakpoints':
-                _handleSetBreakpoints(request)
-                break
-            case 'setExceptionBreakpoints':
-                _handleSetExceptionBreakpoints(request)
-                break
-            case 'configurationDone':
-                _handleConfigurationDone(request)
-                break
-            case 'threads':
-                _handleThreadsRequest(request)
-                break
-            case 'stackTrace':
-                _handleStackTrace(request)
-                break
-            case 'scopes':
-                _handleScopes(request)
-                break
-            case 'variables':
-                _handleVariables(request)
-                break
-            case 'continue':
-                _handleContinue(request)
-                break
-            case 'next':
-                _handleStep('over', request)
-                break
-            case 'stepIn':
-                _handleStep('in', request)
-                break
-            case 'stepOut':
-                _handleStep('out', request)
-                break
-            default:
-                _sendErrorResponse(request, `Command tidak didukung: ${request.command}`)
+    //======= Penanganan Permintaan =======//
+    fungsi _atur_permintaan(permintaan) {
+        pilih (permintaan.perintah) {
+            kasus "inisialisasi":
+                _atur_inisialisasi(permintaan)
+                jeda
+            kasus "luncurkan":
+                _atur_peluncuran(permintaan)
+                jeda
+            kasus "putuskan":
+                _atur_pemutusan(permintaan)
+                jeda
+            kasus "atur_titik_henti":
+                _atur_titik_henti(permintaan)
+                jeda
+            kasus "atur_titik_henti_galat":
+                _atur_titik_henti_galat(permintaan)
+                jeda
+            kasus "konfigurasi_selesai":
+                _atur_konfigurasi_selesai(permintaan)
+                jeda
+            kasus "utas":
+                _atur_permintaan_utas(permintaan)
+                jeda
+            kasus "jejak_tumpukan":
+                _atur_jejak_tumpukan(permintaan)
+                jeda
+            kasus "lingkup":
+                _atur_lingkup(permintaan)
+                jeda
+            kasus "lanjutkan":
+                _atur_lanjutkan(permintaan)
+                jeda
+            kasus "langkah_berikutnya":
+                _atur_langkah("lewati", permintaan)
+                jeda
+            kasus "langkah_masuk":
+                _atur_langkah("masuk", permintaan)
+                jeda
+            kasus "langkah_keluar":
+                _atur_langkah("keluar", permintaan)
+                jeda
+            lainnya:
+                _kirim_tanggapan_galat(permintaan, "Perintah tidak dikenali: " + permintaan.perintah)
         }
     }
 
-    //======= Implementasi Fitur Debug =======//
-    fungsi _handleInitialize(request) {
-        const capabilities = {
-            supportsConfigurationDoneRequest: true,
-            supportsFunctionBreakpoints: true,
-            supportsConditionalBreakpoints: true,
-            supportsHitConditionalBreakpoints: true,
-            supportsEvaluateForHovers: true,
-            supportsStepBack: false,
-            supportsSetVariable: true,
-            supportsRestartFrame: false,
-            supportsGotoTargetsRequest: false,
-            supportsStepInTargetsRequest: true,
-            supportsCompletionsRequest: true,
-            supportsModulesRequest: false,
-            exceptionBreakpointFilters: [
-                { filter: 'all', label: 'Semua Exception' },
-                { filter: 'unhandled', label: 'Exception Tidak Tertangkap' }
+    //======= Fitur Debug =======//
+    fungsi _atur_inisialisasi(permintaan) {
+        kemampuan = {
+            mendukung_permintaan_konfigurasi_selesai: benar,
+            mendukung_titik_henti_fungsi: benar,
+            mendukung_titik_henti_kondisional: benar,
+            mendukung_evaluasi_kursor: benar,
+            mendukung_langkah_mundur: palsu,
+            mendukung_pengaturan_variabel: benar,
+            filter_titik_henti_galat: [
+                { filter: "semua", label: "Semua Galat" },
+                { filter: "tak_tertangkap", label: "Galat Tak Tertangkap" }
             ]
         }
-        _sendResponse(request, { capabilities })
-        _sendEvent('initialized')
+        _kirim_tanggapan(permintaan, { kemampuan })
+        _kirim_peristiwa("inisialisasi_selesai")
     }
 
-    fungsi _handleLaunch(request) {
-        try {
-            _currentProcess = spawnLincahProcess(request.arguments.program, 
-                request.arguments.args)
+    fungsi _atur_peluncuran(permintaan) {
+        coba {
+            _proses_sekarang = jalankan_proses_lincah(
+                permintaan.argumen.program, 
+                permintaan.argumen.args
+            )
             
-            _setupRuntimeHooks(_currentProcess)
-            _sendResponse(request, {})
-            _sendEvent('process', { name: request.arguments.program })
-            _sendEvent('stopped', {
-                reason: STOP_REASON.ENTRY,
-                threadId: 1,
-                allThreadsStopped: true
+            _pasang_pengait_runtime(_proses_sekarang)
+            _kirim_tanggapan(permintaan, {})
+            _kirim_peristiwa("proses", { nama: permintaan.argumen.program })
+            _kirim_peristiwa("berhenti", {
+                alasan: ALASAN_BERHENTI.MASUK,
+                id_utas: 1,
+                semua_utas_berhenti: benar
             })
-        } catch (error) {
-            _sendErrorResponse(request, `Gagal meluncurkan program: ${error.message}`)
+        } tangkap (galat) {
+            _kirim_tanggapan_galat(permintaan, "Gagal meluncurkan program: " + galat.pesan)
         }
     }
 
-    fungsi _handleSetBreakpoints(request) {
-        const breakpoints = []
-        const sourcePath = request.arguments.source.path
+    fungsi _atur_titik_henti(permintaan) {
+        titik_henti = []
+        jalur_sumber = permintaan.argumen.sumber.jalur
         
-        for (const srcBp of request.arguments.breakpoints) {
-            const bp = {
-                id: _generateBreakpointId(),
-                verified: true,
-                line: srcBp.line,
-                column: srcBp.column,
-                condition: srcBp.condition
+        untuk (titik_henti_sumber dari permintaan.argumen.titik_henti) {
+            titik_henti_baru = {
+                id: _buat_id_titik_henti(),
+                terverifikasi: benar,
+                baris: titik_henti_sumber.baris,
+                kolom: titik_henti_sumber.kolom,
+                kondisi: titik_henti_sumber.kondisi
             }
-            _breakpoints[sourcePath] = _breakpoints[sourcePath] || []
-            _breakpoints[sourcePath].push(bp)
-            breakpoints.push(bp)
+            _titik_henti[jalur_sumber] = _titik_henti[jalur_sumber] || []
+            _titik_henti[jalur_sumber].tambah(titik_henti_baru)
+            titik_henti.tambah(titik_henti_baru)
         }
         
-        _sendResponse(request, { breakpoints })
+        _kirim_tanggapan(permintaan, { titik_henti })
     }
 
-    fungsi _handleStep(stepType, request) {
-        _currentStep = stepType
-        _continueExecution(stepType)
-        _sendResponse(request, {})
-    }
-
-    fungsi _handleContinue(request) {
-        _continueExecution('continue')
-        _sendResponse(request, {})
-    }
-
-    //======= Runtime Integration =======//
-    fungsi _setupRuntimeHooks(process) {
-        process.on('breakpointHit', (data) => {
-            _updateStackFrames(data.stack)
-            _sendEvent('stopped', {
-                reason: STOP_REASON.BREAKPOINT,
-                threadId: 1,
-                description: `Breakpoint di ${data.file}:${data.line}`
+    //======= Integrasi Runtime =======//
+    fungsi _pasang_pengait_runtime(proses) {
+        proses.pada("titik_henti_terkena", (data) => {
+            _perbarui_bingkai_tumpukan(data.tumpukan)
+            _kirim_peristiwa("berhenti", {
+                alasan: ALASAN_BERHENTI.TITIK_HENTI,
+                id_utas: 1,
+                deskripsi: "Titik henti di " + data.berkas + ":" + data.baris
             })
         })
         
-        process.on('stepComplete', (data) => {
-            _updateStackFrames(data.stack)
-            _sendEvent('stopped', {
-                reason: STOP_REASON.STEP,
-                threadId: 1,
-                description: `Step selesai di ${data.file}:${data.line}`
+        proses.pada("langkah_selesai", (data) => {
+            _perbarui_bingkai_tumpukan(data.tumpukan)
+            _kirim_peristiwa("berhenti", {
+                alasan: ALASAN_BERHENTI.LANGKAH,
+                deskripsi: "Langkah selesai di " + data.berkas + ":" + data.baris
             })
         })
         
-        process.on('exception', (error) => {
-            _sendEvent('stopped', {
-                reason: STOP_REASON.EXCEPTION,
-                text: error.message,
-                threadId: 1
+        proses.pada("galat", (galat) => {
+            _kirim_peristiwa("berhenti", {
+                alasan: ALASAN_BERHENTI.GALAT,
+                teks: galat.pesan,
+                id_utas: 1
             })
         })
     }
 
-    fungsi _updateStackFrames(stack) {
-        _stackFrames = stack.map((frame, idx) => ({
-            id: idx,
-            name: frame.functionName,
-            line: frame.line,
-            column: frame.column,
-            source: { path: frame.file }
+    fungsi _perbarui_bingkai_tumpukan(tumpukan) {
+        _bingkai_tumpukan = tumpukan.petakan((bingkai, indeks) => ({
+            id: indeks,
+            nama: bingkai.nama_fungsi,
+            baris: bingkai.baris,
+            kolom: bingkai.kolom,
+            sumber: { jalur: bingkai.berkas }
         }))
     }
 
-    //======= State Management =======//
-    fungsi _continueExecution(stepType) {
-        switch (stepType) {
-            case 'over':
-                continueProcess({ stepType: 'over' })
-                break
-            case 'in':
-                continueProcess({ stepType: 'into' })
-                break
-            case 'out':
-                continueProcess({ stepType: 'out' })
-                break
-            default:
-                continueProcess()
+    //======= Fungsi Bantuan =======//
+    fungsi _buat_id_titik_henti() {
+        kembalikan Tanggal.sekarang().keString(36) + Angka.acak().keString(36).potong(2)
+    }
+
+    fungsi _kirim_tanggapan_galat(permintaan, pesan) {
+        tanggapan = {
+            jenis: "tanggapan",
+            urutan: _urutan_berikutnya(),
+            urutan_permintaan: permintaan.urutan,
+            sukses: palsu,
+            perintah: permintaan.perintah,
+            pesan: pesan
         }
-    }
-
-    fungsi _generateBreakpointId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2)
-    }
-
-    //======= Utilities =======//
-    fungsi _nextSeq() {
-        return ++_seqCounter
-    }
-
-    fungsi _sendErrorResponse(request, message) {
-        const response = {
-            type: "response",
-            seq: _nextSeq(),
-            request_seq: request.seq,
-            success: false,
-            command: request.command,
-            message: message
-        }
-        kirimResponseDebug(_encodeDAPMessage(response))
-    }
-
-    fungsi _encodeDAPMessage(message) {
-        return JSON.stringify(message) + '\r\n'
-    }
-
-    fungsi _decodeDAPMessage(data) {
-        return JSON.parse(data)
+        kirim_tanggapan_debug(_kodekan_pesan_dap(tanggapan))
     }
 }
 
-// Implementasi fungsi-fungsi sistem
 implementasi {
-    fungsi mulaiServerDebug(port, callback) {
-        log(`Server debug dimulai pada port ${port}`)
-        // Implementasi server debug
-    }
-
-    fungsi kirimResponseDebug(message) {
-        log(`Mengirim response: ${message}`)
-        // Implementasi pengiriman response
-    }
-
-    fungsi kirimEventDebug(message) {
-        log(`Mengirim event: ${message}`)
-        // Implementasi pengiriman event
-    }
-
-    fungsi spawnLincahProcess(program, args) {
-        log(`Meluncurkan proses: ${program} dengan argumen ${args}`)
-        // Integrasi dengan runtime Lincah
-        return {
-            pid: Math.floor(Math.random() * 10000),
-            on: fungsi(event, callback) { /* ... */ },
-            sendCommand: fungsi(command) { /* ... */ }
+    fungsi jalankan_proses_lincah(program, args) {
+        // Integrasi dengan runtime Lincah—stub untuk contoh
+        kembalikan {
+            pid: Angka.bulat(Angka.acak() * 10000),
+            pada: fungsi(peristiwa, balik_panggil) { /* implementasikan event handler */ },
+            kirim_perintah: fungsi(perintah) { /* implementasikan pengiriman perintah */ }
         }
     }
     
-    fungsi continueProcess(options) {
-        log(`Melanjutkan proses dengan opsi: ${JSON.stringify(options)}`)
-        // Mengirim perintah ke runtime
+    fungsi lanjutkan_proses(pilihan) {
+        // Mengirim perintah ke runtime untuk melanjutkan eksekusi
     }
     
-    fungsi terminateProcess() {
-        log(`Menghentikan proses`)
-        // Menghentikan proses
+    fungsi hentikan_proses() {
+        // Menghentikan proses debug
     }
 }
 
-debug_adapter.main()
+adapter_debug.utama()
