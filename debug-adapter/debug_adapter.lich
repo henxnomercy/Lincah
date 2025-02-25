@@ -5,15 +5,15 @@ modul adapter_debug {
     variabel _utas = petaBaru()
     variabel _variabel = petaBaru()
     variabel _bingkai_tumpukan = []
-    variabel _langkah_sekarang = 'tidak_ada' // 'masuk', 'keluar', 'lewati'
+    variabel _langkah_sekarang = "tidak_ada" // 'masuk', 'keluar', 'lewati'
     variabel _proses_sekarang = nol
 
     // Konstanta DAP
     konst ALASAN_BERHENTI = {
-        MASUK: 'masuk',
-        TITIK_HENTI: 'titik_henti',
-        LANGKAH: 'langkah',
-        GALAT: 'galat'
+        MASUK: "masuk",
+        TITIK_HENTI: "titik_henti",
+        LANGKAH: "langkah",
+        GALAT: "galat"
     }
 
     fungsi utama() {
@@ -24,8 +24,8 @@ modul adapter_debug {
 
     //======= Komunikasi =======//
     fungsi _inisialisasi_komunikasi() {
-        // Implementasi lapisan transport
-        mulai_server_debug(port: angka, (permintaan) => {
+        // Implementasi lapisan transport (misalnya, socket atau STDIN/STDOUT)
+        mulai_server_debug(port: 4711, (permintaan) => {
             permintaan_terdekode = _dekode_pesan_dap(permintaan)
             _atur_permintaan(permintaan_terdekode)
         })
@@ -56,47 +56,47 @@ modul adapter_debug {
     //======= Penanganan Permintaan =======//
     fungsi _atur_permintaan(permintaan) {
         pilih (permintaan.perintah) {
-            kasus 'inisialisasi':
+            kasus "inisialisasi":
                 _atur_inisialisasi(permintaan)
                 jeda
-            kasus 'luncurkan':
+            kasus "luncurkan":
                 _atur_peluncuran(permintaan)
                 jeda
-            kasus 'putuskan':
+            kasus "putuskan":
                 _atur_pemutusan(permintaan)
                 jeda
-            kasus 'atur_titik_henti':
+            kasus "atur_titik_henti":
                 _atur_titik_henti(permintaan)
                 jeda
-            kasus 'atur_titik_henti_galat':
+            kasus "atur_titik_henti_galat":
                 _atur_titik_henti_galat(permintaan)
                 jeda
-            kasus 'konfigurasi_selesai':
+            kasus "konfigurasi_selesai":
                 _atur_konfigurasi_selesai(permintaan)
                 jeda
-            kasus 'utas':
+            kasus "utas":
                 _atur_permintaan_utas(permintaan)
                 jeda
-            kasus 'jejak_tumpukan':
+            kasus "jejak_tumpukan":
                 _atur_jejak_tumpukan(permintaan)
                 jeda
-            kasus 'lingkup':
+            kasus "lingkup":
                 _atur_lingkup(permintaan)
                 jeda
-            kasus 'lanjutkan':
+            kasus "lanjutkan":
                 _atur_lanjutkan(permintaan)
                 jeda
-            kasus 'langkah_berikutnya':
-                _atur_langkah('lewati', permintaan)
+            kasus "langkah_berikutnya":
+                _atur_langkah("lewati", permintaan)
                 jeda
-            kasus 'langkah_masuk':
-                _atur_langkah('masuk', permintaan)
+            kasus "langkah_masuk":
+                _atur_langkah("masuk", permintaan)
                 jeda
-            kasus 'langkah_keluar':
-                _atur_langkah('keluar', permintaan)
+            kasus "langkah_keluar":
+                _atur_langkah("keluar", permintaan)
                 jeda
             lainnya:
-                _kirim_tanggapan_galat(permintaan, `Perintah tidak dikenali: ${permintaan.perintah}`)
+                _kirim_tanggapan_galat(permintaan, "Perintah tidak dikenali: " + permintaan.perintah)
         }
     }
 
@@ -110,12 +110,12 @@ modul adapter_debug {
             mendukung_langkah_mundur: palsu,
             mendukung_pengaturan_variabel: benar,
             filter_titik_henti_galat: [
-                { filter: 'semua', label: 'Semua Galat' },
-                { filter: 'tak_tertangkap', label: 'Galat Tak Tertangkap' }
+                { filter: "semua", label: "Semua Galat" },
+                { filter: "tak_tertangkap", label: "Galat Tak Tertangkap" }
             ]
         }
         _kirim_tanggapan(permintaan, { kemampuan })
-        _kirim_peristiwa('inisialisasi_selesai')
+        _kirim_peristiwa("inisialisasi_selesai")
     }
 
     fungsi _atur_peluncuran(permintaan) {
@@ -127,14 +127,14 @@ modul adapter_debug {
             
             _pasang_pengait_runtime(_proses_sekarang)
             _kirim_tanggapan(permintaan, {})
-            _kirim_peristiwa('proses', { nama: permintaan.argumen.program })
-            _kirim_peristiwa('berhenti', {
+            _kirim_peristiwa("proses", { nama: permintaan.argumen.program })
+            _kirim_peristiwa("berhenti", {
                 alasan: ALASAN_BERHENTI.MASUK,
                 id_utas: 1,
                 semua_utas_berhenti: benar
             })
         } tangkap (galat) {
-            _kirim_tanggapan_galat(permintaan, `Gagal meluncurkan program: ${galat.pesan}`)
+            _kirim_tanggapan_galat(permintaan, "Gagal meluncurkan program: " + galat.pesan)
         }
     }
 
@@ -160,25 +160,25 @@ modul adapter_debug {
 
     //======= Integrasi Runtime =======//
     fungsi _pasang_pengait_runtime(proses) {
-        proses.pada('titik_henti_terkena', (data) => {
+        proses.pada("titik_henti_terkena", (data) => {
             _perbarui_bingkai_tumpukan(data.tumpukan)
-            _kirim_peristiwa('berhenti', {
+            _kirim_peristiwa("berhenti", {
                 alasan: ALASAN_BERHENTI.TITIK_HENTI,
                 id_utas: 1,
-                deskripsi: `Titik henti di ${data.berkas}:${data.baris}`
+                deskripsi: "Titik henti di " + data.berkas + ":" + data.baris
             })
         })
         
-        proses.pada('langkah_selesai', (data) => {
+        proses.pada("langkah_selesai", (data) => {
             _perbarui_bingkai_tumpukan(data.tumpukan)
-            _kirim_peristiwa('berhenti', {
+            _kirim_peristiwa("berhenti", {
                 alasan: ALASAN_BERHENTI.LANGKAH,
-                deskripsi: `Langkah selesai di ${data.berkas}:${data.baris}`
+                deskripsi: "Langkah selesai di " + data.berkas + ":" + data.baris
             })
         })
         
-        proses.pada('galat', (galat) => {
-            _kirim_peristiwa('berhenti', {
+        proses.pada("galat", (galat) => {
+            _kirim_peristiwa("berhenti", {
                 alasan: ALASAN_BERHENTI.GALAT,
                 teks: galat.pesan,
                 id_utas: 1
@@ -216,20 +216,20 @@ modul adapter_debug {
 
 implementasi {
     fungsi jalankan_proses_lincah(program, args) {
-        // Integrasi dengan runtime Lincah
+        // Integrasi dengan runtime Lincah—stub untuk contoh
         kembalikan {
             pid: Angka.bulat(Angka.acak() * 10000),
-            pada: fungsi(peristiwa, balik_panggil) { /* ... */ },
-            kirim_perintah: fungsi(perintah) { /* ... */ }
+            pada: fungsi(peristiwa, balik_panggil) { /* implementasikan event handler */ },
+            kirim_perintah: fungsi(perintah) { /* implementasikan pengiriman perintah */ }
         }
     }
     
     fungsi lanjutkan_proses(pilihan) {
-        // Mengirim perintah ke runtime
+        // Mengirim perintah ke runtime untuk melanjutkan eksekusi
     }
     
     fungsi hentikan_proses() {
-        // Menghentikan proses
+        // Menghentikan proses debug
     }
 }
 
