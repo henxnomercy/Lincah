@@ -1,3 +1,10 @@
+global labelCounter = 0
+
+fungsi generateLabel() {
+    labelCounter += 1
+    kembalikan labelCounter
+}
+
 fungsi generateAssembly(ast) {
     asmCode = []
     tambah(asmCode, "section .text")
@@ -7,12 +14,14 @@ fungsi generateAssembly(ast) {
         jika (node.jenis == "FUNGSI") {
             label = "_fungsi_" + node.nama
             tambah(asmCode, label + ":")
-            untuk setiap instruksi di node.body {
-                terjemahkanKeAssembly(instruksi, asmCode)
+            // Asumsikan body fungsi adalah sebuah BLOCK
+            untuk setiap stmt di node.body.anak {
+                terjemahkanKeAssembly(stmt, asmCode)
             }
             tambah(asmCode, "ret")
         } lain jika (node.jenis == "VARIABEL") {
-            tambah(asmCode, "mov [" + node.id + "], " + node.nilai)
+            // Contoh: inisialisasi variabel, asumsikan nilai berupa literal
+            tambah(asmCode, "mov [" + node.id + "], " + node.nilai.nilai)
         } lain jika (node.jenis == "JIKA") {
             labelElse = "_else_" + generateLabel()
             labelEnd = "_end_" + generateLabel()
@@ -22,7 +31,7 @@ fungsi generateAssembly(ast) {
             terjemahkanKeAssembly(node.blokJika, asmCode)
             tambah(asmCode, "jmp " + labelEnd)
             tambah(asmCode, labelElse + ":")
-            jika (node.blokLain) {
+            jika (node.blokLain != null) {
                 terjemahkanKeAssembly(node.blokLain, asmCode)
             }
             tambah(asmCode, labelEnd + ":")
@@ -36,6 +45,13 @@ fungsi generateAssembly(ast) {
             terjemahkanKeAssembly(node.blok, asmCode)
             tambah(asmCode, "jmp " + labelStart)
             tambah(asmCode, labelEnd + ":")
+        } lain jika (node.jenis == "BLOCK") {
+            // Proses setiap statement di dalam block
+            untuk setiap stmt di node.anak {
+                terjemahkanKeAssembly(stmt, asmCode)
+            }
+        } lain {
+            tambah(asmCode, "; Unknown node type: " + node.jenis)
         }
     }
     
@@ -44,12 +60,16 @@ fungsi generateAssembly(ast) {
 
 fungsi terjemahkanKeAssembly(instruksi, asmCode) {
     jika (instruksi.jenis == "ADD") {
+        // Contoh: operasi penjumlahan
         tambah(asmCode, "mov eax, " + instruksi.operand1)
         tambah(asmCode, "add eax, " + instruksi.operand2)
         tambah(asmCode, "mov [result], eax")
     } lain jika (instruksi.jenis == "CMP") {
         tambah(asmCode, "mov eax, " + instruksi.operand1)
         tambah(asmCode, "cmp eax, " + instruksi.operand2)
+    } lain jika (instruksi.jenis == "LITERAL") {
+        tambah(asmCode, "mov eax, " + instruksi.nilai)
+    } lain {
+        tambah(asmCode, "; Instruksi tidak dikenal: " + instruksi.jenis)
     }
-    // Tambahkan untuk operasi lain
 }
