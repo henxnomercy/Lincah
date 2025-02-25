@@ -1,0 +1,58 @@
+modul renderer {
+    jenis Vertex = { posisi: Posisi3D, normal: Posisi3D, uv: { u: Float, v: Float } }
+    jenis Mesh = { vertices: [Vertex], indices: [Int] }
+    
+    jenis Shader = {
+        vertex: String,
+        fragment: String,
+        program: Int
+    }
+    
+    fungsi muatMesh(objekPath: String) -> Mesh {
+        // Implementasi pembacaan file objek 3D
+        kembalikan /* mesh yang dimuat */
+    }
+    
+    fungsi hitungNormal(mesh: Mesh) -> Mesh {
+        // 
+        kembalikan mesh  // dengan data normal yang telah dihitung
+    }
+    
+    fungsi muatShader(vertPath: String, fragPath: String) -> Shader {
+      
+        shaderVert = bacaFile(vertPath)
+        shaderFrag = bacaFile(fragPath)
+        programID = kompilasiShader(shaderVert, "vertex")
+        programID += kompilasiShader(shaderFrag, "fragment")
+        kembalikan { vertex: shaderVert, fragment: shaderFrag, program: programID }
+    }
+    
+    fungsi muatTexture(path: String) -> Texture {
+        
+        kembalikan /* texture yang dimuat */
+    }
+    
+    fungsi renderScene(scene: Scene3D, shader: Shader, vkContext: vulkan_context.VulkanContext) {
+        untuk setiap objek dalam scene.objek {
+            modelMatrix = hitungTransformasi(objek)
+            viewMatrix = hitungViewMatrix(scene.kamera)
+            projectionMatrix = proyeksiPerspektif(scene.kamera.fov, 800/600, scene.kamera.nearClip, scene.kamera.farClip)
+            
+            kirimUniformMat4(shader, "model", modelMatrix)
+            kirimUniformMat4(shader, "view", viewMatrix)
+            kirimUniformMat4(shader, "projection", projectionMatrix)
+            
+            gambarMesh(objek.mesh, vkContext)
+        }
+    }
+    
+    fungsi gambarUI() {
+      //Will be added soon :)
+    }
+    
+    fungsi hitungTransformasi(objek: Objek3D) { /* ... */ }
+    fungsi hitungViewMatrix(kamera: Kamera3D) { /* ... */ }
+    fungsi proyeksiPerspektif(fov: Float, aspect: Float, near: Float, far: Float) { /* ... */ }
+    fungsi kirimUniformMat4(shader: Shader, nama: String, matriks: Matrix4x4) { /* ... */ }
+    fungsi gambarMesh(mesh: Mesh, vkContext: vulkan_context.VulkanContext) { /* ... */ }
+}
