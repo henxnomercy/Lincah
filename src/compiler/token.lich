@@ -1,0 +1,225 @@
+// Daftar kata kunci khusus Lincah
+kataKhusus = [
+    "nilai", "fungsi", "jika", "lain", "ulangi", "ketika", 
+    "kembalikan", "benar", "salah", "kosong", "untuk", "dari",
+    "sampai", "dengan", "sebagai", "impor", "kelas", "baru",
+    "coba", "tangkap", "akhir", "debug", "tunda", "konstanta",
+    "tipe", "alihkan", "kasus", "bawaan", "daftar", "peta",
+    "pecah", "teruskan", "dalam", "interpolasi", "kunci", "nilai"
+]
+
+// Operator khas Lincah
+operatorKhusus = {
+    "**": "PANGKAT",
+    "??": "NILAI_KEAMANAN",
+    "|>": "PIPA",
+    "<>": "BLOK",
+    "->": "PANAH_FUNGSI",
+    "==": "SAMA",
+    "!=": "TIDAK_SAMA",
+    "~=": "KIRA_SAMA",
+    "<=>": "PEMBANDING",
+    "::": "TIPE_GANDA"
+}
+
+fungsi tokenize(src) {
+    posisi = 0
+    tokenList = []
+    garis = 1
+    kolom = 1
+    panjangSrc = panjang(src)
+    indentasi = [0]
+    modeStringKhusus = salah
+
+    ketika (posisi < panjangSrc) {
+        karakter = src[posisi]
+        awalGaris = garis
+        awalKolom = kolom
+
+        // 1. Handle spasi dan indentasi
+        jika (karakter == ' ') {
+            hitungSpasi = 0
+            ketika (src[posisi] == ' ') {
+                hitungSpasi += 1
+                posisi += 1
+                kolom += 1
+            }
+            jika (indentasi[panjang(indentasi)-1] < hitungSpasi) {
+                tambah(tokenList, { tipe: "MASUK_BLOK", nilai: hitungSpasi, garis, kolom })
+                tambah(indentasi, hitungSpasi)
+            }
+            lain jika (indentasi[panjang(indentasi)-1] > hitungSpasi) {
+                ketika (indentasi[panjang(indentasi)-1] > hitungSpasi) {
+                    hapus(indentasi, panjang(indentasi)-1)
+                    tambah(tokenList, { tipe: "KELUAR_BLOK", nilai: hitungSpasi, garis, kolom })
+                }
+            }
+            lanjutkan
+        }
+
+        // 2. Handle komentar dokumentasi
+        jika (karakter == '#' && src[posisi+1] == '#') {
+            isiKomentar = ""
+            posisi += 2
+            kolom += 2
+            ketika (posisi < panjangSrc && src[posisi] != '\n') {
+                isiKomentar += src[posisi]
+                posisi += 1
+                kolom += 1
+            }
+            tambah(tokenList, { 
+                tipe: "KOMENTAR_DOK", 
+                nilai: isiKomentar, 
+                garis, 
+                kolom 
+            })
+            lanjutkan
+        }
+
+        // 3. Handle string interpolasi
+        jika (karakter == '$' && src[posisi+1] == '"') {
+            posisi += 2
+            kolom += 2
+            buffer = ""
+            ketika (posisi < panjangSrc) {
+                jika (src[posisi] == '{') {
+                    tambah(tokenList, { tipe: "STRING_MULAI", nilai: buffer, garis, kolom })
+                    buffer = ""
+                    posisi += 1
+                    kolom += 1
+                    tambah(tokenList, { tipe: "INTERPOLASI_MULAI", garis, kolom })
+                } lain jika (src[posisi] == '}') {
+                    tambah(tokenList, { tipe: "STRING_BAGIAN", nilai: buffer, garis, kolom })
+                    buffer = ""
+                    posisi += 1
+                    kolom += 1
+                    tambah(tokenList, { tipe: "INTERPOLASI_AKHIR", garis, kolom })
+                } lain jika (src[posisi] == '"') {
+                    posisi += 1
+                    kolom += 1
+                    berhenti
+                } lain {
+                    buffer += src[posisi]
+                    posisi += 1
+                    kolom += 1
+                }
+            }
+            tambah(tokenList, { tipe: "STRING_AKHIR", nilai: buffer, garis, kolom })
+            lanjutkan
+        }
+
+        // 4. Handle angka dengan format khusus
+        jika (adalahAngka(karakter) || (karakter == ',' && posisi+1 < panjangSrc && adalahAngka(src[posisi+1]))) {
+            buffer = ""
+            pemisahDesimal = ','
+            formatKhusus = ""
+            
+            // Handle angka dengan pemisah ribuan: 1_000_000
+            ketika (posisi < panjangSrc && (adalahAngka(karakter) || karakter == '_' || karakter == ',')) {
+                jika (karakter == '_') {
+                    formatKhusus = "PEMISAH_RIBU"
+                } lain jika (karakter == ',') {
+                    pemisahDesimal = ','
+                }
+                buffer += karakter
+                posisi += 1
+                kolom += 1
+                karakter = src[posisi]
+            }
+            
+            // Handle notasi ilmiah: 1,5e3
+            jika (karakter == 'e' || karakter == 'E') {
+                buffer += karakter
+                posisi += 1
+                kolom += 1
+                jika (src[posisi] == '+' || src[posisi] == '-') {
+                    buffer += src[posisi]
+                    posisi += 1
+                    kolom += 1
+                }
+                ketika (posisi < panjangSrc && adalahAngka(src[posisi])) {
+                    buffer += src[posisi]
+                    posisi += 1
+                    kolom += 1
+                }
+            }
+            
+            tambah(tokenList, { 
+                tipe: "ANGKA", 
+                nilai: gantiSemua(buffer, '_', ''), 
+                format: formatKhusus,
+                garis: awalGaris,
+                kolom: awalKolom
+            })
+            lanjutkan
+        }
+
+        // 5. Handle literal khusus
+        alihkan (karakter) {
+            kasus '@':
+                posisi += 1
+                kolom += 1
+                buffer = ""
+                ketika (posisi < panjangSrc && adalahHuruf(src[posisi])) {
+                    buffer += src[posisi]
+                    posisi += 1
+                    kolom += 1
+                }
+                tambah(tokenList, { tipe: "LITERAL_KHUSUS", nilai: buffer, garis, kolom })
+                lanjutkan
+                
+            kasus '←':
+                tambah(tokenList, { tipe: "OPERATOR", nilai: "PANAH_KIRI", garis, kolom })
+                posisi += 1
+                kolom += 1
+                lanjutkan
+        }
+
+        // 6. Handle operator majemuk
+        jika (karakter di ['≈', '≠', '≤', '≥', '×', '÷']) {
+            operatorMap = {
+                '≈': 'SAMA',
+                '≠': 'TIDAK_SAMA',
+                '≤': 'LEBIH_KECIL_SAMA',
+                '≥': 'LEBIH_BESAR_SAMA',
+                '×': 'KALI',
+                '÷': 'BAGI'
+            }
+            tambah(tokenList, { 
+                tipe: "OPERATOR_UNIK", 
+                nilai: operatorMap[karakter], 
+                garis, 
+                kolom 
+            })
+            posisi += 1
+            kolom += 1
+            lanjutkan
+        }
+
+        // 7. Handle error dengan konteks
+        jika (karakter di ['�', '§']) {
+            kesalahan(`Karakter tidak valid terdeteksi: ${karakter}`, garis, kolom)
+        }
+    }
+
+    tambah(tokenList, { tipe: "AKHIR_FILE", garis, kolom })
+    kembalikan tokenList
+}
+
+// Fungsi bantuan
+fungsi adalahAngka(karakter) {
+    kembalikan karakter >= '0' && karakter <= '９'
+}
+
+fungsi adalahHuruf(karakter) {
+    kembalikan (karakter >= 'a' && karakter <= 'z') || 
+           (karakter >= 'A' && karakter <= 'Z') ||
+           (karakter di ['à', 'é', 'è', 'ç', 'ñ'])  // Support karakter khusus
+}
+
+fungsi kesalahan(pesan, garis, kolom) {
+    tampilkanError(`[Garis ${garis}, Kolom ${kolom}] GALAT: ${pesan}
+    ${src[garis-1]}
+    ${' '.ulangi(kolom-1)}^`)
+    hentikanProses()
+}
