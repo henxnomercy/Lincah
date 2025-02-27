@@ -1,5 +1,5 @@
 modul optimalisasi {
-    // Registry kompresi adaptif
+    ## Registry kompresi adaptif
     global registryKompresi = {
         algoritma: {
             "zstd": { prioritas: 5, rasioMin: 2.5, kecepatanMax: 150MB/dtk },
@@ -11,7 +11,7 @@ modul optimalisasi {
         profilPerangkat: muatProfilGPU()
     }
 
-    // [Fungsi Baru] Kompresi adaptif berbasis konten
+    ## Kompresi adaptif berbasis konten
     fungsi kompresAdaptif(buffer: SmartBuffer, tipeData: String) -> Byte[] {
         strategi = pilihStrategi(buffer, tipeData)
         jika (registryKompresi.profilPerangkat.mendukungGPU) {
@@ -26,7 +26,7 @@ modul optimalisasi {
         kembalikan algoritmaTerbaik(skor)
     }
 
-    // [Fungsi Baru] Multi-threaded compression dengan work stealing
+    ## Multi-threaded compression dengan work stealing
     fungsi kompresParalel(buffers: [SmartBuffer], algoritma: String) {
         executor = ThreadPool.baru(Runtime.getCoreCount() * 2)
         futures = []
@@ -43,7 +43,7 @@ modul optimalisasi {
         kembalikan hasil
     }
 
-    // [Fungsi Baru] Kompresi dengan prediktif AI
+    ## Kompresi dengan prediktif AI
     fungsi kompresAI(buffer: SmartBuffer, model: String = "tinycrush") {
         jika (!modelKompresi[model]) {
             muatModelDariDisk(model)
@@ -52,7 +52,7 @@ modul optimalisasi {
         kembalikan modelKompresi[model].prediksi(context)
     }
 
-    // [Fungsi Diperbarui] Kompresi memori dengan auto-fallback
+    ## Kompresi memori dengan auto-fallback
     fungsi kompresMemori(buffer: SmartBuffer, algoritma: String, level: Int) -> Byte[] {
         coba {
             jika (algoritma == "zstd") {
@@ -70,7 +70,7 @@ modul optimalisasi {
         }
     }
 
-    // [Fungsi Baru] Dekompresi streaming dengan callback progresif
+    ## Dekompresi streaming dengan callback progresif
     fungsi dekompresStream(stream: InputStream, algoritma: String, callback: Fn(Progres)) {
         pipe = Pipeline.baru()
             .tahap(() => Dekompresor.baru(algoritma))
@@ -81,34 +81,34 @@ modul optimalisasi {
         })
     }
 
-    // [Fungsi Baru] Manajemen memori pooling
+    ## Manajemen memori pooling
     kelas MemoryPool {
         konstruktor(nama: String, ukuranBlok: Int, maxBlok: Int) {
-            this.nama = nama
-            this.ukuranBlok = ukuranBlok
-            this.pool = []
-            this.maxBlok = maxBlok
+            ini.nama = nama
+            ini.ukuranBlok = ukuranBlok
+            ini.pool = []
+            ini.maxBlok = maxBlok
         }
 
         fungsi alokasi(ukuran: Int) {
-            jika (ukuran > this.ukuranBlok) {
+            jika (ukuran > ini.ukuranBlok) {
                 kembalikan SmartBuffer.baru(ukuran)
             }
             jika (this.pool.length > 0) {
-                kembalikan this.pool.pop()
+                kembalikan ini.pool.pop()
             }
-            kembalikan SmartBuffer.baru(this.ukuranBlok)
+            kembalikan SmartBuffer.baru(ini.ukuranBlok)
         }
 
         fungsi kembalikan(buffer: SmartBuffer) {
-            jika (this.pool.length < this.maxBlok) {
+            jika (ini.pool.length < ini.maxBlok) {
                 buffer.reset()
-                this.pool.push(buffer)
+                ini.pool.push(buffer)
             }
         }
     }
 
-    // [Fungsi Integrasi Sistem File]
+    ## [Fungsi Integrasi Sistem File]
     fungsi kompresFileMasif(path: String, algoritma: String = "auto") {
         file = bacaFileLincah(path)
         jika (algoritma == "auto") {
@@ -125,7 +125,7 @@ modul optimalisasi {
         kembalikan hasil
     }
 
-    // [Fungsi Baru] Transcoding GPU-accelerated
+    ## [Fungsi Baru] Transcoding GPU-accelerated
     fungsi transcodeGPU(data: Byte[], formatInput: String, formatOutput: String) {
         context = buatContextVulkan()
         bufferInput = alokasiStagingBuffer(context, data)
@@ -137,7 +137,7 @@ modul optimalisasi {
         bersihkanResources([bufferInput, bufferOutput])
     }
 
-    // [Fungsi Diperbarui] Aliasing memori cerdas
+    ## Aliasing memori cerdas
     fungsi aliaskanMemori(buffer1: SmartBuffer, buffer2: SmartBuffer) {
         jika (buffer1.pool == buffer2.pool && buffer1.size >= buffer2.size) {
             vmaAliasBuffers(context.allocator, buffer1.handle, buffer2.handle)
@@ -147,7 +147,7 @@ modul optimalisasi {
         buatSharedAlias(buffer1, buffer2)
     }
 
-    // [Fungsi Baru] Deduplikasi memori otomatis
+    ## Deduplikasi memori otomatis
     fungsi deduplikasiBlokMemori(buffers: [SmartBuffer]) {
         hashTable = Map baru()
         untuk setiap buf di buffers {
@@ -160,14 +160,78 @@ modul optimalisasi {
         }
     }
 
-    // [Fungsi Tambahan] Optimalisasi untuk file .nc
+    ## Optimalisasi untuk file .nc
     fungsi kompresKonfig(ncData: KonfigData) -> Byte[] {
-        // Serialisasi hierarkis
+        ## Serialisasi hierarkis
         stream = MemoryStream.baru()
         serializer = CBORSerializer.baru(stream)
         serializer.tulis(ncData)
         
-        // Kompresi dictionary-based
+        #$ Kompresi dictionary-based
         kembalikan kompresDenganKamus(stream.data, kamusKonfig)
+    }
+
+    ## Memory mapping untuk akses performa tinggi
+    petaKeMemori(ukuran: Int, offset: Int = 0) {
+        ini.mapping = syscall.mmap(
+            this.descriptor,
+            ukuran,
+            PROT_READ | PROT_WRITE,
+            MAP_SHARED,
+            offset
+        )
+        kembalikan ini.mapping
+    }
+
+    ## Operasi asynchronous
+    bacaAsync(ukuran: Int) -> Promise<Buffer> {
+        kembalikan new Promise((resolve, reject) => {
+            syscall.bacaAsync(ini.descriptor, ukuran, (error, data) => {
+                jika (error) reject(error)
+                lain {
+                    ini.buffer.tambah(data)
+                    resolve(data)
+                }
+            })
+        })
+    }
+
+    ## Locking file
+    kunci(jenis: String = "eksklusif") {
+        lockType = alihkan(jenis) {
+            kasus "bagikan": LOCK_SH
+            kasus "eksklusif": LOCK_EX
+            bawaan: LOCK_EX
+        }
+        syscall.flock(this.descriptor, lockType | LOCK_NB)
+    }
+
+    ## Flush buffer ke disk
+    flush() {
+        syscall.fsync(ini.descriptor)
+        ini.buffer.reset()
+    }
+
+    ## Dapatkan metadata file
+    stat() {
+        kembalikan syscall.fstat(this.descriptor)
+    }
+
+    ## Ubah mode akses
+    ubahMode(mode: String) {
+        flags = alihkan(mode) {
+            kasus "baca": O_RDONLY
+            kasus "tulis": O_WRONLY
+            kasus "baca_tulis": O_RDWR
+            bawaan: O_RDONLY
+        }
+        syscall.fcntl(ini.descriptor, F_SETFL, flags)
+    }
+
+    ## Handle buffer dengan lifetime management
+    dapatkanBuffer() {
+        kembalikan new Proxy(this.buffer, {
+            hapus: () => ini.tutup()
+        })
     }
 }
