@@ -1,0 +1,104 @@
+# Interpreter untuk bahasa Lincah
+# Tulis oleh [Hen X]
+
+fungsi parse_words(line) {
+    variabel words = list()
+    variabel current_word = ""
+    variabel inside_quote = false
+    variabel i
+    untuk i dari 0 sampai panjang(line) - 1 {
+        variabel char = karakter(line, i)
+        jika char == '"' {
+            jika inside_quote == false {
+                inside_quote = true
+            } jika_tidak {
+                inside_quote = false
+            }
+            current_word = current_word + char
+        } jika_tidak {
+            jika char == ' ' {
+                jika panjang(current_word) > 0 {
+                    tambahkan(words, current_word)
+                    current_word = ""
+                }
+            } jika_tidak {
+                current_word = current_word + char
+            }
+        }
+    }
+    jika panjang(current_word) > 0 {
+        tambahkan(words, current_word)
+    }
+    kembalikan words
+}
+
+fungsi main() {
+    variabel input_code = baca_file("input.lnc")
+    variabel lines = split(input_code, '\n')
+    variabel variabels = dictionary()
+    variabel i
+    untuk i dari 0 sampai panjang(lines) - 1 {
+        variabel line = lines[i]
+        variabel comment_pos = find(line, '#')
+        jika comment_pos != -1 {
+            line = substring(line, 0, comment_pos)
+        }
+        variabel words = parse_words(line)
+        jika panjang(words) == 0 {
+            lanjutkan
+        }
+        variabel command = words[0]
+        jika command == "variabel" {
+            jika panjang(words) != 4 atau words[2] != "=" {
+                tampilkan "Invalid variabel declaration" di layar
+                keluar
+            }
+            variabel nama = words[1]
+            variabel nilai = words[3]
+            variabels[nama] = nilai
+        } jika command == "tampilkan" {
+            jika panjang(words) != 3 atau words[2] != "di layar" {
+                tampilkan "Invalid tampilkan command" di layar
+                keluar
+            }
+            variabel string_to_display
+            jika karakter(words[1], 0) == '"' dan karakter(words[1], panjang(words[1]) - 1) == '"' {
+                string_to_display = substring(words[1], 1, panjang(words[1]) - 2)
+            } jika_tidak {
+                jika variabels mengandung words[1] {
+                    string_to_display = variabels[words[1]]
+                } jika_tidak {
+                    tampilkan "Undefined variable: " + words[1] di layar
+                    keluar
+                }
+            }
+            tampilkan string_to_display di layar
+        } jika command == "tunggu" {
+            jika panjang(words) != 2 {
+                tampilkan "Invalid tunggu command" di layar
+                keluar
+            }
+            variabel time_str
+            jika karakter(words[1], 0) == '"' dan karakter(words[1], panjang(words[1]) - 1) == '"' {
+                time_str = substring(words[1], 1, panjang(words[1]) - 2)
+            } jika_tidak {
+                jika variabels mengandung words[1] {
+                    time_str = variabels[words[1]]
+                } jika_tidak {
+                    time_str = words[1]
+                }
+            }
+            variabel time = ke_angka(time_str)
+            jika time == null {
+                tampilkan "Invalid time in tunggu command" di layar
+                keluar
+            }
+            tunggu time
+        } jika command == "keluar" {
+            keluar
+        } jika_tidak {
+            tampilkan "Unknown command: " + command di layar
+            keluar
+        }
+    }
+}
