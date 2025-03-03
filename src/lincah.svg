@@ -1,29 +1,7 @@
 <svg width="500" height="500" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <!-- Gradasi warna untuk isi bentuk L -->
-    <linearGradient id="gradL" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#333" />
-      <stop offset="100%" stop-color="#999" />
-    </linearGradient>
-
-    <!-- Efek bayangan (drop shadow) -->
-    <filter id="dropshadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="4" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.4"/>
-    </filter>
-  </defs>
-
-  <!-- Tidak ada rect background agar latar belakang transparan -->
-
-  <!-- Bentuk L dengan gradasi dan bayangan, terpusat di (250, 250) -->
-  <path d="
-    M190,190      <!-- Mulai di titik (190,190) -->
-    h30           <!-- Geser ke kanan 30 px -->
-    v90           <!-- Turun 90 px -->
-    h90           <!-- Geser ke kanan 90 px -->
-    v30           <!-- Turun 30 px -->
-    h-120         <!-- Kembali ke kiri 120 px (menutup bentuk L) -->
-    Z
-  "
-  fill="url(#gradL)"
-  filter="url(#dropshadow)"/>
+  <rect x="230.5" y="225" width="14" height="50" fill="#888" />
+  <rect x="230.5" y="265" width="35" height="14" fill="#888" />
+  
+  <rect x="232.5" y="223" width="14" height="50" fill="#000" />
+  <rect x="232.5" y="263" width="35" height="14" fill="#000" />
 </svg>
