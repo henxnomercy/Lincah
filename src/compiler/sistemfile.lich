@@ -2,15 +2,15 @@
 sistemFile = {
     ## Konfigurasi
     ekstensiResmi: {
-        utama: ".lich",
-        modul: ".ch",
-        konfig: ".nc",
-        includ: ".inc"
-    },
+    utama: ".lx",        // File utama (Lincah eXecutable)
+    modul: ".lm",        // Modul Lincah (Lincah Module)
+    konfig: ".lcfg",     // Konfigurasi (Lincah ConFiG)
+    includ: ".lin"       // Include (Lincah INclude)
+},
     
     ## Registry pembaca file
     pembaca: {
-        ".lich": {
+        ".lx": {
             proses: fungsi(path, isi) {
                 ## Preprocessing untuk file utama
                 hasil = {
@@ -40,7 +40,7 @@ sistemFile = {
             }
         },
         
-        ".ch": {
+        ".lm": {
             proses: fungsi(path, isi) {
                 ## Modul harus memiliki namespace
                 jika (!regex(isi, /^modul\s+\w+/)) {
@@ -59,7 +59,7 @@ sistemFile = {
             }
         },
         
-        ".nc": {
+        ".lcfg": {
             proses: fungsi(path, isi) {
                 ## Parse konfigurasi ke format tabel aman
                 config = {}
@@ -84,7 +84,7 @@ sistemFile = {
             }
         },
         
-        ".inc": {
+        ".lin": {
             proses: fungsi(path, isi) {
                 ## Sanitasi input
                 isiBersih = sanitasiHTML(isi)
