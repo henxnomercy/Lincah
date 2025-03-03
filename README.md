@@ -1,4 +1,4 @@
-# Lincah
+# Lincah ![](https://github.com/henxnomercy/Lincah/src/lincah.svg)
 Light-weight open-source programming language designed for simplicity and graphics handling.
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/henxnomercy/Lincah)  
