@@ -1,73 +1,194 @@
-// Mengintegrasikan modul lexer, parser, codegen,
-// serta modul aot_compiler, jit_compiler, dan shader_compiler.
-// Juga mengintegrasikan debug adapter jika flag --debug disertakan.
-
 modul compiler {
-    // Impor modul–modul compiler
+    // Impor modul inti dan ekstensi
     impor lexer          dari "../compiler/lexer.lich"
     impor parser         dari "../compiler/parser.lich"
     impor codegen        dari "../compiler/codegen.lich"
     impor aot_compiler   dari "../compiler/aot_compiler.lich"
     impor jit_compiler   dari "../compiler/jit_compiler.lich"
     impor shader_compiler dari "../compiler/shader_compiler.lich"
+    impor optimisasi     dari "../optimisasi/optimisasi.lich"
+    impor sistemFile     dari "../compiler/sistem_file.lich"
 
-    // Fungsi untuk mengkompilasi source code berdasarkan mode (aot, jit, shader)
-    fungsi compileSource(source: String, mode: String, target: String) -> Any {
-        tokens = lexer.tokenize(source)
-        ast = parser.parse(tokens)
-        
-        asmCode = codegen.generateAssembly(ast)
-        
-        jika (mode == "aot") {
-            binary = aot_compiler.compile(source, target)
-            kembalikan { binary: binary, asm: asmCode }
-        } lain jika (mode == "jit") {
-            jitFunc = jit_compiler.compileJIT(source)
-            kembalikan { jitFunction: jitFunc, asm: asmCode }
-        } lain jika (mode == "shader") {
-            spirvBinary = shader_compiler.compileShader(source, target)
-            kembalikan { spirv: spirvBinary }
-        } lain {
-            error("Mode kompilasi tidak valid: " + mode)
+    // Struktur konfigurasi kompilator
+    kelas KompilasiConfig {
+        mode: String = "aot"
+        target: String = "x86_64"
+        optimisasiLevel: Int = 3
+        debugInfo: Boolean = salah
+        shaderTarget: String = "spirv"
+        jitOptions: Map = {
+            "gc": benar,
+            "inline": benar
         }
     }
 
-    // Fungsi main menerima argumen command-line (misalnya, ["--debug"])
+    // Sistem diagnostik terstruktur
+    kelas Diagnostik {
+        static errors: List = []
+        static warnings: List = []
+        
+        static tambahError(lokasi: SourceLocation, pesan: String) {
+            this.errors.tambah({ jenis: "ERROR", lokasi, pesan })
+        }
+        
+        static tambahWarning(lokasi: SourceLocation, pesan: String) {
+            this.warnings.tambah({ jenis: "WARNING", lokasi, pesan })
+        }
+        
+        static tampilkanLaporan() {
+            cetak("==== LAPORAN DIAGNOSTIK ====")
+            untuk setiap diag di this.errors + this.warnings {
+                cetak(`${diag.jenis} di ${diag.lokasi}: ${diag.pesan}`)
+            }
+        }
+    }
+
+    // Pipeline kompilasi modular
+    kelas KompilasiPipeline {
+        konstruktor(config: KompilasiConfig) {
+            this.config = config
+            this.phaseManager = PhaseManager.baru()
+            this.irLapisan = IRManager.baru()
+        }
+        
+        fungsi jalankanPipeline(source: String) {
+            try {
+                // Phase 1: Frontend
+                this.phaseManager.mulaiPhase("Lexing")
+                tokens = lexer.tokenize(source)
+                
+                this.phaseManager.mulaiPhase("Parsing")
+                ast = parser.parse(tokens)
+                
+                // Phase 2: Middle-end
+                this.phaseManager.mulaiPhase("IR Generation")
+                hir = this.irLapisan.bangkitkanHIR(ast)
+                
+                this.phaseManager.mulaiPhase("Optimisasi")
+                hir = optimisasi.terapkanOptimisasiHIR(
+                    hir, 
+                    this.config.optimisasiLevel
+                )
+                
+                // Phase 3: Backend
+                this.phaseManager.mulaiPhase("Code Generation")
+                alihkan (this.config.mode) {
+                    kasus "aot":
+                        mir = aot_compiler.lowerKeMIR(hir)
+                        binary = aot_compiler.kodekanNative(mir, this.config.target)
+                        kembalikan { binary, mir }
+                        
+                    kasus "jit":
+                        lir = jit_compiler.lowerKeLIR(hir)
+                        jitModule = jit_compiler.bangunJIT(lir, this.config.jitOptions)
+                        kembalikan { jitModule }
+                        
+                    kasus "shader":
+                        spirv = shader_compiler.kodekanShader(
+                            hir, 
+                            this.config.shaderTarget
+                        )
+                        kembalikan { spirv }
+                }
+            } catch (error) {
+                Diagnostik.tambahError(
+                    error.lokasi || SourceLocation.unknown(), 
+                    error.pesan
+                )
+                lempar error
+            }
+        }
+    }
+
+    // Integrasi debugger
+    kelas DebugAdapter {
+        konstruktor() {
+            this.breakpoints = Map baru()
+            this.runtimeInfo = Map baru()
+        }
+        
+        fungsi sambungkanKeDebugger(port: Int = 9229) {
+            this.socket = bukaSocketDebug(port)
+            this.loopEventDebug()
+        }
+        
+        fungsi pasangBreakpoint(lokasi: SourceLocation) {
+            this.breakpoints.tambah(lokasi, {
+                kondisi: null,
+                hitCount: 0
+            })
+        }
+        
+        fungsi tanganiDebugEvent(event: DebugEvent) {
+            alihkan (event.jenis) {
+                kasus "BREAKPOINT_HIT":
+                    this.tangguhkanEksekusi()
+                    this.kirimKeKlien("break", event.data)
+                kasus "VARIABLE_REQUEST":
+                    nilai = this.ambilNilaiVariabel(event.nama)
+                    this.kirimKeKlien("variable", nilai)
+            }
+        }
+    }
+
+    // API Publik Kompilator
+    fungsi kompilasi(config: KompilasiConfig, sumber: String) {
+        pipeline = KompilasiPipeline.baru(config)
+        hasil = pipeline.jalankanPipeline(sumber)
+        
+        jika (config.debugInfo) {
+            hasil.metadata = {
+                sourceMap: bangkitkanSourceMap(sumber),
+                simbolTabel: ekstrakSimbolTabel()
+            }
+        }
+        
+        kembalikan hasil
+    }
+
     fungsi main(args: [String]) {
-        // Jika flag --debug disertakan, jalankan debug adapter
-        jika (args.menyertakan("--debug")) {
-            impor adapter_debug dari "../../debug-adapter/debug_adapter.lich"
-            adapter_debug.utama()
-            // Debug adapter akan menangani komunikasi debug
+        config = KompilasiConfig.baru()
+        debugMode = args.menyertakan("--debug")
+        
+        // Parsing argumen CLI
+        parserArg = ArgumentParser.baru()
+        parserArg.tambahkanOpsi("--target", "-t", "x86_64")
+        parserArg.tambahkanOpsi("--optimize", "-O", "3")
+        parserArg.parse(args)
+        
+        // Konfigurasi dari CLI
+        config.target = parserArg.dapatkan("--target")
+        config.optimisasiLevel = parseInt(parserArg.dapatkan("--optimize"))
+        
+        // Inisialisasi debugger
+        jika (debugMode) {
+            debugger = DebugAdapter.baru()
+            debugger.sambungkanKeDebugger()
+            debugger.pasangBreakpointsAwal()
         }
         
-        catat_log("Memulai proses kompilasi bahasa Lincah...")
-        sourceCode = bacaFile("contoh.lich")
+        // Manajemen file
+        sumberUtama = sistemFile.bacaFileLincah("contoh.lich")
+        hasil = kompilasi(config, sumberUtama)
         
-        // Kompilasi AOT
-        hasilAOT = compileSource(sourceCode, "aot", "x86_64")
-        jika (hasilAOT.binary != null) {
-            tulisFile("output.bin", hasilAOT.binary)
-            cetak("Kompilasi AOT berhasil! Binary disimpan sebagai output.bin")
-        }
-        jika (hasilAOT.asm != null) {
-            tulisFile("output.asm", gabungBaris(hasilAOT.asm))
-            cetak("Assembly code berhasil dihasilkan dan disimpan sebagai output.asm")
+        // Output hasil
+        alihkan (config.mode) {
+            kasus "aot":
+                sistemFile.tulisFile("output.bin", hasil.binary)
+                sistemFile.tulisFile("output.asm", hasil.assembly)
+                jika (debugMode) {
+                    sistemFile.tulisFile("output.map", hasil.metadata.sourceMap)
+                }
+                
+            kasus "jit":
+                jit_compiler.jalankanModul(hasil.jitModule)
+                
+            kasus "shader":
+                sistemFile.tulisFile("shader.spv", hasil.spirv)
         }
         
-        // Kompilasi JIT (contoh, hanya untuk demonstrasi)
-        hasilJIT = compileSource(sourceCode, "jit", "")
-        jika (hasilJIT.jitFunction != null) {
-            cetak("Fungsi JIT berhasil dikompilasi")
-        }
-        
-        // Kompilasi Shader
-        shaderSource = bacaFile("shader.vert")
-        hasilShader = compileSource(shaderSource, "shader", "vertex")
-        jika (hasilShader.spirv != null) {
-            tulisFile("shader.spv", hasilShader.spirv)
-            cetak("Shader SPIR-V berhasil dihasilkan dan disimpan sebagai shader.spv")
-        }
+        // Tampilkan laporan
+        Diagnostik.tampilkanLaporan()
     }
 }
 
