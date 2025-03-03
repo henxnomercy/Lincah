@@ -1,4 +1,4 @@
-// main.lich
+// main.lx
 // Entry point dan loop utama runtime Lincah
 
 impor sdl_integration

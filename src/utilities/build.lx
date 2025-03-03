@@ -1,4 +1,4 @@
-// build.lich
+// build.lx
 modul build {
     // Fungsi utama build yang mendukung mode debug dan release
     fungsi main(args: [String]) {

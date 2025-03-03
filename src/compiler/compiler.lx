@@ -1,13 +1,13 @@
 modul compiler {
     // Impor modul inti dan ekstensi
-    impor lexer          dari "../compiler/lexer.lich"
-    impor parser         dari "../compiler/parser.lich"
-    impor codegen        dari "../compiler/codegen.lich"
-    impor aot_compiler   dari "../compiler/aot_compiler.lich"
-    impor jit_compiler   dari "../compiler/jit_compiler.lich"
-    impor shader_compiler dari "../compiler/shader_compiler.lich"
-    impor optimisasi     dari "../optimisasi/optimisasi.lich"
-    impor sistemFile     dari "../compiler/sistem_file.lich"
+    impor lexer          dari "../compiler/lexer.lx"
+    impor parser         dari "../compiler/parser.lx"
+    impor codegen        dari "../compiler/codegen.lx"
+    impor aot_compiler   dari "../compiler/aot_compiler.lx"
+    impor jit_compiler   dari "../compiler/jit_compiler.lx"
+    impor shader_compiler dari "../compiler/shader_compiler.lx"
+    impor optimisasi     dari "../optimisasi/optimisasi.lx"
+    impor sistemFile     dari "../compiler/sistem_file.lx"
 
     // Struktur konfigurasi kompilator
     kelas KompilasiConfig {
@@ -168,7 +168,7 @@ modul compiler {
         }
         
         // Manajemen file
-        sumberUtama = sistemFile.bacaFileLincah("contoh.lich")
+        sumberUtama = sistemFile.bacaFileLincah("contoh.lx")
         hasil = kompilasi(config, sumberUtama)
         
         // Output hasil

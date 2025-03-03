@@ -31,8 +31,8 @@ sistemFile = {
             },
             cache: {},
             validasi: fungsi(path) {
-                jika (!regex(path, /\.lich$/)) {
-                    kesalahan("Ekstensi file utama harus .lich")
+                jika (!regex(path, /\.lx$/)) {
+                    kesalahan("Ekstensi file utama harus .lx")
                 }
                 jika (panjang(path) > 256) {
                     kesalahan("Path file terlalu panjang")
@@ -186,7 +186,7 @@ sistemFile = {
             kompresOtomatis: fungsi(path, data) {
                 ekstensi = ambilEkstensi(path)
                 alihkan (ekstensi) {
-                    kasus ".lich": 
+                    kasus ".lx": 
                         kembalikan this.kompres(data, "ringan")
                     kasus ".ch":
                         kembalikan optimalisasi.kompresAI(data)
